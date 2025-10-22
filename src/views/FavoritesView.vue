@@ -1,3 +1,7 @@
 <template>
-  <h2>Favorites Page</h2>
+    <div>
+        <h1>Favorites View</h1>
+        <p>This is where your favorite movies will be displayed.</p>
+    </div>
+           
 </template>

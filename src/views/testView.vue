@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 import { fetchMovieById } from '/src/services/moviesApi';
 
 // Ref to hold the movie data
@@ -12,9 +12,6 @@ const route = useRoute();
 // Get 'id' parameter from the URL
 const movieId = route.params.id;
 
-// Get the router instance
-const router = useRouter();
-
 // Fetch the movie's data when the component loads
 onMounted(async () => {
   movie.value = await fetchMovieById(movieId);
@@ -22,7 +19,7 @@ onMounted(async () => {
 </script>
 
 <template>
-  <main class="container mx-auto p-4 text-gray-900">
+  <main class="container mx-auto p-4">
 
     <div class="text-center text-lg" v-if="!movie">
       Loading movie details...
@@ -36,18 +33,8 @@ onMounted(async () => {
       </div>
 
       <div class="md:w-2/3">
-        <button @click="router.back()"
-          class="flex items-center text-gray-600 hover:text-gray-900 mb-4 group focus:outline-none">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"
-            class="w-5 h-5 mr-2 transition-transform duration-200 group-hover:-translate-x-1">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-          </svg>
-
-          <span class="font-semibold text-md">Back</span>
-        </button>
         <h1 class="text-4xl font-bold mb-2">{{ movie.title }}</h1>
-
-        <p class="text-gray-600 text-lg mb-4 italic">{{ movie.tagline }}</p>
+        <p class="text-gray-400 text-lg mb-4 italic">{{ movie.tagline }}</p>
 
         <div class="flex items-center mb-4">
           <span class="text-yellow-500 mr-2">
@@ -56,7 +43,7 @@ onMounted(async () => {
           <span class="text-gray-600">({{ movie.vote_count }} votes)</span>
         </div>
 
-        <p class="mb-4">{{ movie.overview }}</p>
+        <p class="mb-4 text-black">{{ movie.overview }}</p>
 
         <div class="grid grid-cols-2 gap-4 text-sm">
           <div>
