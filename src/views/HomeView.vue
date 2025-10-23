@@ -2,32 +2,32 @@
 import { ref, onMounted } from 'vue';
 import { fetchPopularMovies } from '/src/services/moviesApi';
 import { RouterLink } from 'vue-router';
+import { useFavoritesStore } from '@/stores/favoritesStore';
 
-// Create a reactive variable to hold the movies
+
 const movies = ref([]);
+const favoritesStore = useFavoritesStore();
 
 // Use onMounted to fetch data when the component is first loaded
 onMounted(async () => {
     movies.value = await fetchPopularMovies();
-    // Add an 'isLiked' property to each movie
-    movies.value = movies.value.map(movie => ({
-        ...movie, // Keep all the original movie data
-        isLiked: false // Add the new property to track its state
-    }));
 });
 </script>
 
 <template>
     <main class="container mx-auto p-4">
-        <h1 class="text-3xl font-bold mb-6 text-black">Popular Movies</h1>
+        <h1 class="text-3xl font-bold mb-6 text-black border-b-4 border-green-500 pb-2">
+            Popular Movies
+        </h1>
 
         <div class="text-gray-400" v-if="movies.length === 0">
             Loading movies...
         </div>
 
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6" v-else>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-6" v-else>
 
-            <div class="bg-gray-800 rounded-lg shadow-lg overflow-hidden" v-for="movie in movies" :key="movie.id">
+            <div class="bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-2xl"
+                v-for="movie in movies" :key="movie.id">
                 <img :src="'https://image.tmdb.org/t/p/w500' + movie.poster_path" :alt="movie.title"
                     class="rounded-t-lg w-full" />
                 <div class="p-3">
@@ -38,11 +38,11 @@ onMounted(async () => {
                             class="flex-1 rounded-lg bg-green-600 px-4 py-2 text-center font-semibold text-white hover:bg-green-800 text-sm">
                             Details
                         </RouterLink>
-                        <button @click="movie.isLiked = !movie.isLiked"
+                        <button @click="favoritesStore.toggleFavorite(movie)"
                             class="p-2 rounded-full hover:bg-gray-700 focus:outline-none">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1.5"
                                 stroke="currentColor" class="w-6 h-6 transition-colors duration-200" :class="[
-                                    movie.isLiked
+                                    favoritesStore.checkIsFavorite(movie.id)
                                         ? 'fill-red-500 stroke-red-500'
                                         : 'fill-none text-gray-400 hover:text-white'
                                 ]">
