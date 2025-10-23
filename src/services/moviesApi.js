@@ -35,4 +35,19 @@ export async function fetchMovieById(movieId) {
   }
 }
 
-// More functions here later (searchMovies, fetchMovieById)
+
+export async function searchMovies(query) {
+  const url = `${BASE_URL}/search/movie?api_key=${API_KEY}&query=${query}&language=en-US&page=1`;
+  
+  try {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    const data = await response.json();
+    return data.results; // This is the array of movies
+  } catch (error) {
+    console.error('Error searching movies:', error);
+    return []; // Return an empty array on error
+  }
+}

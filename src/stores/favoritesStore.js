@@ -15,9 +15,9 @@ export const useFavoritesStore = defineStore('favorites', () => {
 
   // 2. ACTIONS: The functions that change the state.
 
-  /**
-   * This function adds or removes a movie from the favorites list.
-   */
+  
+  //This function adds or removes a movie from the favorites list.
+   
   function toggleFavorite(movie) {
 
     // Check if the movie is already in the list.
@@ -25,10 +25,10 @@ export const useFavoritesStore = defineStore('favorites', () => {
     const index = favorites.value.findIndex(item => item.id === movie.id)
 
     if (index === -1) {
-      // The movie is NOT in the list, so let's add it.
+      // The movie is NOT in the list, so it is added.
       favorites.value.push(movie)
     } else {
-      // The movie IS in the list, so let's remove it.
+      // The movie IS in the list, so it is removed.
       favorites.value.splice(index, 1)
     }
 
@@ -38,9 +38,7 @@ export const useFavoritesStore = defineStore('favorites', () => {
   }
 
   // This function just checks if a movie is in the list.
-  // It returns true or false.
   function checkIsFavorite(movieId) {
-    // .some() is a simple array method that checks if *any*
     // item in the list matches our condition.
     return favorites.value.some(movie => movie.id === movieId)
   }

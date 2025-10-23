@@ -1,5 +1,9 @@
 <script setup>
 import { RouterLink } from 'vue-router'
+import { useSearchStore } from '@/stores/searchStore';
+
+const searchStore = useSearchStore();
+
 </script>
 
 <template>
@@ -19,6 +23,7 @@ import { RouterLink } from 'vue-router'
         </RouterLink>
         
         <input 
+          v-model="searchStore.searchQuery"
           type="text" 
           placeholder="Search movies..."
           class="rounded-full bg-gray-700 px-4 py-1.5 text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"

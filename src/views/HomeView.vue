@@ -1,17 +1,36 @@
 <script setup>
-import { ref, onMounted } from 'vue';
-import { fetchPopularMovies } from '/src/services/moviesApi';
-import { RouterLink } from 'vue-router';
-import { useFavoritesStore } from '@/stores/favoritesStore';
-
+import { ref, onMounted, watch } from 'vue';
+import { fetchPopularMovies, searchMovies } from '/src/services/moviesApi';
+import { useSearchStore } from '@/stores/searchStore';
+import MovieCard from '@/components/MovieCard.vue';
 
 const movies = ref([]);
-const favoritesStore = useFavoritesStore();
+const searchStore = useSearchStore();
+const isLoading = ref(false);
 
 // Use onMounted to fetch data when the component is first loaded
-onMounted(async () => {
-    movies.value = await fetchPopularMovies();
+onMounted(() => {
+    getMovies();
 });
+
+async function getMovies() {
+    isLoading.value = true;
+    if (searchStore.searchQuery.length > 0) {
+        // If there is a search, call searchMovies
+        movies.value = await searchMovies(searchStore.searchQuery);
+    } else {
+        // Otherwise, get popular movies
+        movies.value = await fetchPopularMovies();
+    }
+    isLoading.value = false;
+}
+// Watch for changes in the search query
+watch(() =>
+    searchStore.searchQuery, // Watch this source
+    (newQuery, oldQuery) => {       // Run this callback
+        getMovies();
+    }
+);
 </script>
 
 <template>
@@ -25,34 +44,10 @@ onMounted(async () => {
         </div>
 
         <div class="grid grid-cols-2 md:grid-cols-5 gap-6" v-else>
-
-            <div class="bg-gray-800 rounded-lg shadow-lg overflow-hidden transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-2xl"
-                v-for="movie in movies" :key="movie.id">
-                <img :src="'https://image.tmdb.org/t/p/w500' + movie.poster_path" :alt="movie.title"
-                    class="rounded-t-lg w-full" />
-                <div class="p-3">
-                    <h2 class="mb-2 text-lg text-white font-semibold">{{ movie.title }}</h2>
-                    <p class="mb-2 text-sm text-white">Release Date: {{ movie.release_date }}</p>
-                    <div class="flex gap-4">
-                        <RouterLink :to="{ name: 'movie-details', params: { id: movie.id } }"
-                            class="flex-1 rounded-lg bg-green-600 px-4 py-2 text-center font-semibold text-white hover:bg-green-800 text-sm">
-                            Details
-                        </RouterLink>
-                        <button @click="favoritesStore.toggleFavorite(movie)"
-                            class="p-2 rounded-full hover:bg-gray-700 focus:outline-none">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1.5"
-                                stroke="currentColor" class="w-6 h-6 transition-colors duration-200" :class="[
-                                    favoritesStore.checkIsFavorite(movie.id)
-                                        ? 'fill-red-500 stroke-red-500'
-                                        : 'fill-none text-gray-400 hover:text-white'
-                                ]">
-                                <path stroke-linecap="round" stroke-linejoin="round"
-                                    d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" />
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
+            <MovieCard v-for="movie in movies" 
+                  :key="movie.id" 
+                  :movie="movie" 
+            />
 
         </div>
     </main>
