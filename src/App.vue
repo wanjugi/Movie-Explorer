@@ -6,7 +6,7 @@ import AppFooter from './components/AppFooter.vue'
 </script>
 
 <template>
-  <div>
+  <div class="flex flex-col min-h-screen bg-gray-300">
     <AppHeader />
 
     <main class="container mx-auto p-4">

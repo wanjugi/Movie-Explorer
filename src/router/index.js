@@ -17,7 +17,7 @@ const router = createRouter({
       component: () => import('../views/FavoritesView.vue')
     },
     {
-      // This is a dynamic route. The ":id" part is a parameter.
+      // This is a dynamic route.
       path: '/movie/:id',
       name: 'movie-details',
       component: () => import('../views/MovieDetailView.vue')
