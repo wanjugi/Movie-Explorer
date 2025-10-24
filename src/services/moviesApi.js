@@ -18,7 +18,7 @@ export async function fetchPopularMovies() {
     return []; // Return an empty array on error
   }
 }
-
+// function to fetch movie details by ID
 export async function fetchMovieById(movieId) {
   const url = `${BASE_URL}/movie/${movieId}?api_key=${API_KEY}&language=en-US&append_to_response=credits`;
 
@@ -35,7 +35,7 @@ export async function fetchMovieById(movieId) {
   }
 }
 
-
+// Function to search movies by query
 export async function searchMovies(query) {
   const url = `${BASE_URL}/search/movie?api_key=${API_KEY}&query=${query}&language=en-US&page=1`;
 
@@ -51,7 +51,7 @@ export async function searchMovies(query) {
     return []; // Return an empty array on error
   }
 }
-
+// Function to discover movies with filters
 export async function discoverMovies(filters) {
   let url = `${BASE_URL}/discover/movie?api_key=${API_KEY}&language=en-US&page=1&sort_by=popularity.desc`;
 
@@ -85,7 +85,7 @@ export async function fetchGenres() {
       throw new Error('Network response was not ok');
     }
     const data = await response.json();
-    return data.genres; // Returns an array like [{id: 28, name: 'Action'}]
+    return data.genres; // Returns an array of genres
   } catch (error) {
     console.error('Error fetching genres:', error);
     return [];

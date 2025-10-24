@@ -17,16 +17,15 @@ onMounted(async () => {
 });
 
 
-// Use watchEffect to automatically react to ALL changes
-//    (search, genre, or year)
+// Use watchEffect to automatically react to ALL changes (search, genre, or year)
 watchEffect(async () => {
     isLoading.value = true;
 
     if (searchStore.searchQuery.length > 0) {
-        // SEARCH MODE: If the user is searching, call searchMovies
+        // Search mode: If the user is searching, call searchMovies
         movies.value = await searchMovies(searchStore.searchQuery);
     } else {
-        // DISCOVER MODE: Pass the filter refs to the discover function
+        // Discover mode: Pass the filter refs to the discover function
         const filters = {
             genre: selectedGenre.value,
             year: selectedYear.value

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
+import MovieDetailView from '../views/MovieDetailView.vue'
 
 
 const router = createRouter({
@@ -20,7 +21,7 @@ const router = createRouter({
       // This is a dynamic route.
       path: '/movie/:id',
       name: 'movie-details',
-      component: () => import('../views/MovieDetailView.vue')
+      component: MovieDetailView
     }
   ],
 })
