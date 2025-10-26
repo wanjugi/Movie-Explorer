@@ -21,13 +21,13 @@ defineProps({
                         <h2 class="mb-2 text-lg text-white font-semibold">{{ movie.title }}</h2>
                         <p class="mb-2 text-sm text-white">Release Date: {{ movie.release_date }}</p>
                     </div>
-                    <div class="flex gap-4">
+                    <div class="flex gap-4 items-center">
                         <RouterLink :to="{ name: 'movie-details', params: { id: movie.id } }"
                             class="flex-1 rounded-lg bg-green-600 px-4 py-2 text-center font-semibold text-white hover:bg-green-800 text-sm">
                             Details
                         </RouterLink>
                         <button @click="favoritesStore.toggleFavorite(movie)"
-                            class="p-2 rounded-full hover:bg-gray-700 focus:outline-none">
+                            class="p-2 rounded-full hover:bg-gray-700 focus:outline-none flex-shrink-0">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" stroke-width="1.5"
                                 stroke="currentColor" class="w-6 h-6 transition-colors duration-200" :class="[
                                     favoritesStore.checkIsFavorite(movie.id)
