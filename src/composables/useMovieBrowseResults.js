@@ -1,29 +1,25 @@
 import { computed, watch } from 'vue'
-import { readMovieBrowseQuery } from '../router/movieBrowseQuery.js'
-import { discoverMovies, fetchGenres, searchMovies } from '../services/moviesApi.js'
+import { isMovieBrowseRoute, movieBrowseRequest, readMovieBrowseQuery } from '../router/movieBrowseQuery.js'
+import { fetchGenres, fetchMoviePage } from '../services/moviesApi.js'
 import { useLatestRequest } from './useLatestRequest.js'
 
 export function useMovieBrowseResults(route) {
   const active = computed(() => readMovieBrowseQuery(route.query))
-  const results = useLatestRequest()
+  const results = useLatestRequest({ isEmpty: page => page.results.length === 0 })
   const genres = useLatestRequest()
 
   const requestKey = computed(() => {
-    if (route.name !== 'home') return ''
-    const { q, genre, year } = active.value
-    return JSON.stringify(q ? ['search', q] : ['discover', genre, year])
+    if (!isMovieBrowseRoute(route.name)) return ''
+    return JSON.stringify(movieBrowseRequest(active.value))
   })
 
   watch(requestKey, key => {
     if (!key) return results.cancel()
-    const { q, genre, year } = active.value
-    void results.run(signal => {
-      const options = { signal, throwOnError: true }
-      return q ? searchMovies(q, options) : discoverMovies({ genre, year }, options)
-    })
+    const { operation, parameters } = movieBrowseRequest(active.value)
+    void results.run(signal => fetchMoviePage(operation, parameters, { signal }))
   }, { immediate: true, flush: 'sync' })
 
-  watch(() => route.name === 'home' && !active.value.q, enabled => {
+  watch(() => isMovieBrowseRoute(route.name) && !active.value.q && !active.value.category, enabled => {
     if (enabled && genres.state.value.status === 'idle') {
       void genres.run(signal => fetchGenres({ signal, throwOnError: true }))
     } else if (!enabled && genres.state.value.status === 'loading') {

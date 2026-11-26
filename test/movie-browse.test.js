@@ -3,9 +3,12 @@ import { test } from 'node:test'
 import { setImmediate } from 'node:timers/promises'
 import { effectScope, computed } from 'vue'
 import { createMemoryHistory, createRouter } from 'vue-router'
-import { BROWSE_DEBOUNCE_MS, useMovieFilters, useMovieSearch } from '../src/composables/useMovieBrowseControls.js'
+import { BROWSE_DEBOUNCE_MS, useGlobalSearch, useMovieFilters, useMovieSearch } from '../src/composables/useMovieBrowseControls.js'
 import { useMovieBrowseResults } from '../src/composables/useMovieBrowseResults.js'
-import { normalizeMovieSearch, readMovieBrowseQuery } from '../src/router/movieBrowseQuery.js'
+import { movieBrowseLocation, movieBrowseRequest, navigateMovieBrowse, normalizeMovieSearch, readMovieBrowseQuery } from '../src/router/movieBrowseQuery.js'
+import { pageItems } from '../src/catalogue/moviePages.js'
+
+const envelope = results => ({ page: 1, results, total_pages: Number(results.length > 0), total_results: results.length })
 
 const component = { render: () => null }
 
@@ -16,6 +19,8 @@ async function start(t, path) {
       { path: '/', name: 'home', component },
       { path: '/favorites', name: 'favorites', component },
       { path: '/movie/:id', name: 'movie-details', component },
+      { path: '/search', name: 'search', component },
+      { path: '/tv/:id', name: 'tv-details', component },
     ],
   })
   await router.push(path)
@@ -36,6 +41,29 @@ function useClock(t) {
     await setImmediate()
   }
 }
+
+test('global search debounces from TV details, preserves type, and clears a legacy movie query in place', async t => {
+  const tick = useClock(t)
+  const { route, router, scope } = await start(t, '/tv/550')
+  const search = scope.run(() => useGlobalSearch(route, router))
+  search.draft.value = 'Av'
+  await tick(100)
+  search.draft.value = 'Avatar + 雨'
+  await tick(349)
+  assert.equal(route.name, 'tv-details')
+  await tick(1)
+  assert.equal(route.name, 'search')
+  assert.deepEqual(route.query, { q: 'Avatar + 雨' })
+  await router.push('/search?q=Avatar&type=tv&page=3')
+  search.draft.value = 'Other title'
+  await search.submit()
+  assert.deepEqual(route.query, { q: 'Other title', type: 'tv' })
+  await router.push('/?q=Interstellar&genre=28&page=2')
+  search.clear()
+  await setImmediate()
+  assert.equal(route.name, 'home')
+  assert.deepEqual(route.query, { genre: '28' })
+})
 
 test('route query accepts single valid values, trims title text, and ignores malformed filters', () => {
   const title = "L’été + 雨 & A"
@@ -60,7 +88,7 @@ test('typing from Favorites creates one committed search and one request with en
   const requests = []
   t.mock.method(globalThis, 'fetch', async input => {
     requests.push(new URL(input, 'https://example.test').searchParams)
-    return Response.json({ results: [] })
+    return Response.json(envelope([]))
   })
   const search = scope.run(() => useMovieSearch(route, router))
   const { results } = scope.run(() => useMovieBrowseResults(route))
@@ -227,14 +255,14 @@ test('results follow semantic route state, cancel obsolete loads, and keep genre
     { operation: 'discover', genre: '28', year: '2025' },
     { operation: 'genres' },
   ])
-  requests[0].resolve(Response.json({ results: [] }))
+  requests[0].resolve(Response.json(envelope([])))
   requests[2].resolve(new Response(null, { status: 503 }))
   await setImmediate()
   assert.equal(results.state.value.status, 'loading')
   assert.equal(genres.state.value.status, 'error')
-  requests[1].resolve(Response.json({ results: [movie] }))
+  requests[1].resolve(Response.json(envelope([movie])))
   await setImmediate()
-  assert.deepEqual(results.state.value, { status: 'success', data: [movie], error: null })
+  assert.deepEqual(results.state.value, { status: 'success', data: envelope([movie]), error: null })
 
   await router.push('/?genre=2147483648&year=202&unknown=1&q=a&q=b')
   const defaultRequest = requests.at(-1)
@@ -251,9 +279,35 @@ test('results follow semantic route state, cancel obsolete loads, and keep genre
   assert.deepEqual(searchRequest.params, { operation: 'search', query: 'Next' })
   await router.push('/movie/550')
   assert.equal(searchRequest.signal.aborted, true)
-  retryRequest.resolve(Response.json({ results: [movie] }))
-  searchRequest.resolve(Response.json({ results: [movie] }))
+  retryRequest.resolve(Response.json(envelope([movie])))
+  searchRequest.resolve(Response.json(envelope([movie])))
   await retry
   await setImmediate()
   assert.equal(results.state.value.status, 'idle')
+})
+
+test('page URLs pause incompatible filters, reset on criteria changes, and restore through history', async t => {
+  const { route, router } = await start(t, '/?from=1980&to=1989&language=ko&sort=rating&page=5')
+  const active = () => readMovieBrowseQuery(route.query)
+  assert.deepEqual(movieBrowseRequest(active()), {
+    operation: 'discover', parameters: { from: '1980', to: '1989', language: 'ko', sort: 'rating', page: '5' },
+  })
+  await navigateMovieBrowse(router, { ...active(), q: 'Movie' })
+  assert.equal(route.query.page, undefined)
+  assert.deepEqual(movieBrowseRequest(active()), { operation: 'search', parameters: { query: 'Movie' } })
+  await router.push(movieBrowseLocation({ ...active(), page: '2' }))
+  assert.deepEqual(movieBrowseRequest(active()), { operation: 'search', parameters: { query: 'Movie', page: '2' } })
+  router.back()
+  await setImmediate()
+  assert.equal(route.query.page, undefined)
+  router.forward()
+  await setImmediate()
+  assert.equal(route.query.page, '2')
+  await navigateMovieBrowse(router, { ...active(), q: '' })
+  assert.deepEqual(movieBrowseRequest(active()), {
+    operation: 'discover', parameters: { from: '1980', to: '1989', language: 'ko', sort: 'rating' },
+  })
+  assert.deepEqual(movieBrowseRequest(readMovieBrowseQuery({ category: 'trending', period: 'day', page: '3' })),
+    { operation: 'trending', parameters: { period: 'day' } })
+  assert.deepEqual(pageItems(250, 500), [1, null, 249, 250, 251, null, 500])
 })

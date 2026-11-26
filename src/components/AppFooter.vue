@@ -1,30 +1,26 @@
 <template>
-  <footer class="bg-gray-900 text-gray-400 py-6 text-center px-4">
-    <div class="container mx-auto">
-      
-      <p class="text-sm">
-        Made by Ahmed Wanjugi using
-      </p>
-
-      <div class="mt-2 flex flex-col gap-1 md:flex-row md:justify-center md:gap-2">
-        <a href="https://vuejs.org/" target="_blank"
-          class="text-green-500 hover:text-green-400">Vue.js</a>
-        
-        <span class="hidden md:inline">,</span>
-
-        <a href="https://tailwindcss.com/" target="_blank" 
-          class="text-green-500 hover:text-green-400">Tailwind CSS</a>
-
-        <span class="hidden md:inline">,</span>
-
-        <a href="https://pinia.vuejs.org/" target="_blank" 
-          class="text-green-500 hover:text-green-400">Pinia</a>
+  <footer class="cinema-footer">
+    <section aria-label="Credits" class="content-frame flex flex-col gap-3 text-sm sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div>
+        <p class="mb-2 font-semibold cinema-ink">Movie<span class="cinema-accent">Explorer</span></p>
+        <p>Made by Ahmed Wanjugi</p>
+        <ul aria-label="Technologies" class="mt-1 flex flex-wrap items-center gap-x-3">
+          <li><a href="https://vuejs.org/" target="_blank" rel="noopener noreferrer"
+            class="ui-focus-dark inline-flex min-h-8 items-center rounded cinema-accent underline-offset-4 hover:underline">Vue.js</a></li>
+          <li><a href="https://tailwindcss.com/" target="_blank" rel="noopener noreferrer"
+            class="ui-focus-dark inline-flex min-h-8 items-center rounded cinema-accent underline-offset-4 hover:underline">Tailwind CSS</a></li>
+          <li><a href="https://pinia.vuejs.org/" target="_blank" rel="noopener noreferrer"
+            class="ui-focus-dark inline-flex min-h-8 items-center rounded cinema-accent underline-offset-4 hover:underline">Pinia</a></li>
+        </ul>
       </div>
 
-      <p class="text-xs mt-4">
-        Movie data provided by
-        <a href="https://www.themoviedb.org/" target="_blank" class="text-blue-400 hover:text-blue-300">TMDB</a>.
-      </p>
-    </div>
+      <div class="flex items-center gap-3">
+        <a href="https://www.themoviedb.org/" target="_blank" rel="noopener noreferrer"
+          aria-label="TMDB" class="ui-focus-dark inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded footer-logo">
+          <img src="/tmdb-logo.svg" alt="" width="185" height="133" class="h-auto w-10" />
+        </a>
+        <p class="max-w-md text-xs leading-5">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+      </div>
+    </section>
   </footer>
 </template>

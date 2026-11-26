@@ -1,3 +1,5 @@
+import { isTrailerEnvelope } from '../catalogue/trailerSelection.js'
+
 const isId = value => Number.isInteger(value) && value > 0 && value <= 2_147_483_647
 const hasName = item => isId(item?.id) && typeof item.name === 'string'
 const isMovie = item => isId(item?.id) && typeof item.title === 'string'
@@ -7,12 +9,12 @@ const isDetails = item => isMovie(item) && Number.isFinite(item.vote_average)
 
 const messages = {
   network: 'Could not connect. Check your connection and try again.',
-  unavailable: 'Movie data is temporarily unavailable. Please try again.',
-  timeout: 'The movie request timed out. Please try again.',
+  unavailable: 'Title data is temporarily unavailable. Please try again.',
+  timeout: 'The request timed out. Please try again.',
   'rate-limit': 'Too many requests. Please wait before trying again.',
   invalid: 'The request was not accepted. Change your search or filters and try again.',
-  missing: 'This movie could not be found.',
-  malformed: 'The movie service returned an unreadable response. Please try again.',
+  missing: 'This title could not be found.',
+  malformed: 'The service returned an unreadable response. Please try again.',
 }
 
 export class MovieApiError extends Error {
@@ -44,15 +46,16 @@ function errorForResponse(response) {
   return new MovieApiError(status >= 400 && status < 500 ? 'invalid' : 'unavailable', status)
 }
 
-async function requestMovies(operation, parameters, field, validate, { signal, throwOnError = false } = {}) {
+export async function requestMedia(endpoint, operation, parameters, field, validate, { signal, throwOnError = false } = {}) {
   const query = new URLSearchParams({ operation, ...parameters })
+  query.set('operation', operation)
   const fallback = field ? [] : null
 
   try {
     signal?.throwIfAborted()
     let response
     try {
-      response = await fetch('/api/movies?' + query, { signal })
+      response = await fetch(endpoint + query, { signal })
     } catch (error) {
       if (signal?.aborted || error?.name === 'AbortError') throw error
       throw new MovieApiError('network')
@@ -77,6 +80,12 @@ async function requestMovies(operation, parameters, field, validate, { signal, t
   }
 }
 
+const requestMovies = (...args) => requestMedia('/api/movies?', ...args)
+
+export function fetchMovieVideos(id, signal) {
+  return requestMovies('videos', { id }, null, isTrailerEnvelope, { signal, throwOnError: true })
+}
+
 export function fetchPopularMovies(options) {
   return requestMovies('popular', {}, 'results', isMovie, options)
 }
@@ -98,4 +107,13 @@ export function discoverMovies(filters, options) {
 
 export function fetchGenres(options) {
   return requestMovies('genres', {}, 'genres', hasName, options)
+}
+import { MOVIE_FEEDS } from '../catalogue/movieFilters.js'
+import { isMoviePageEnvelope } from '../catalogue/moviePages.js'
+
+
+export async function fetchMoviePage(operation, parameters, { signal } = {}) {
+  if (operation !== 'search' && !Object.hasOwn(MOVIE_FEEDS, operation)) throw new MovieApiError('invalid')
+  return requestMovies(operation, parameters, null,
+    page => isMoviePageEnvelope(page) && page.results.every(isMovie), { signal, throwOnError: true })
 }

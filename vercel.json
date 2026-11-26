@@ -2,6 +2,12 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     { "source": "/favorites", "destination": "/index.html" },
-    { "source": "/movie/:id", "destination": "/index.html" }
+    { "source": "/movie/:id", "destination": "/index.html" },
+    { "source": "/movies", "destination": "/index.html" },
+    { "source": "/tv", "destination": "/index.html" },
+    { "source": "/search", "destination": "/index.html" },
+    { "source": "/tv/:id", "destination": "/index.html" },
+    { "source": "/tv/:id/season/:seasonNumber", "destination": "/index.html" },
+    { "source": "/tv/:id/season/:seasonNumber/episode/:episodeNumber", "destination": "/index.html" }
   ]
 }

@@ -1,6 +1,6 @@
 # MovieExplorer
 
-MovieExplorer is a Vue 3 single-page app for movie discovery, search, details and browser-local favorites. See [architecture](ARCHITECTURE.md), the [current visual baseline](DESIGN_SYSTEM.md) and the [repository instructions](AGENTS.md).
+MovieExplorer is a Vue 3 single-page app for discovering movies and TV series, browsing seasons and episodes, searching titles and saving browser-local favorites. See [architecture](ARCHITECTURE.md), the [current visual baseline](DESIGN_SYSTEM.md) and the [repository instructions](AGENTS.md).
 
 ## Local setup on Windows
 
@@ -52,15 +52,80 @@ Tests and build require no TMDB key. The integration test uses an ephemeral loop
 
 ## Movie search and filter verification
 
-Use the [private-file PowerShell workflow above](#local-setup-on-windows) to run Vite. The global search field accepts Enter or commits a valid draft after 350 ms. Search from Home, Favorites or a movie detail page and confirm the address changes to `/?q=...`. Reopening that URL restores the result query. Validate punctuation and Unicode with a title such as `A & B + 雨`.
+Use the [private-file PowerShell workflow above](#local-setup-on-windows) to run Vite. The global search field accepts Enter or commits a valid draft after 350 ms. Search from any page and confirm the address changes to `/search?q=...`. Reopening that URL restores the result query. Validate punctuation and Unicode with a title such as `A & B + 雨`. Home and Movies also have a separate movie-only field that keeps catalogue filters and category paused until the query is cleared.
 
 - Open `/?genre=28&year=2025` directly. Confirm both controls and the first-page discovery result request reflect the URL. A partial year such as `20` shows guidance and leaves the last committed year active. A valid year commits after 350 ms or Enter. Deleting the year clears it.
 - Search from that filtered Home state, refresh, then select Clear. Genre and year return because the search URL retained them as paused filters. A new search from another page starts with no paused filters. Check browser Back and Forward, and confirm Enter on an already committed query does not add history or repeat a request.
-- In DevTools, use network throttling and submit two different searches. Check that only the newer result remains even if the older response finishes later. While a request is pending, Home shows loading text. Try a title with no matches and use Clear search from the empty state.
+- In DevTools, use network throttling and submit two different searches. Check that only the newer result remains even if the older response finishes later. Both Search and Home show skeleton cards and announce loading. Try a title with no matches and use the header Clear button.
 - To exercise failure locally, switch the browser offline after loading the app, enter a different search, then restore the connection and select Retry movies. The retry should keep the same query. If genre loading fails independently, discovery should still render movies and Retry genres should be available.
 - Open `/movie/550` and confirm details/credits. Add and remove a favorite on the same local origin and refresh Favorites. Use keyboard Tab and Enter to check the search form, Clear, retry and focus styling.
 
 `npm.cmd test` runs the API, real Vue Router memory-history, debounce, request ownership, retry and Vite integration tests. The timing tests use Node's built-in mock timers. Live TMDB is only needed for the optional manual checks above.
+
+## Phase 8B cinematic refinement
+
+The header theme button switches between dark and light and remembers the explicit theme in the browser. Cinematic artwork stays locally dark in both themes. Cards and season posters lift with fine-pointer hover or keyboard focus, with static emphasis under reduced motion.
+
+Watch trailer on the featured title, a movie, or a TV series opens a dialog and retrieves trailer metadata from the existing same-origin API. **Load YouTube trailer** deliberately loads a third-party player. Native controls start video playback. Some titles are unavailable or cannot embed, and a supported video's external link remains available when blocked. Privacy-enhanced embedding still contacts YouTube.
+
+**Auto-preview trailers** on Home defaults off. Enabling it allows a muted preview after one second over the featured Watch trailer control on a wide fine-pointer desktop, when reduced motion is off. Manual playback remains the mobile and keyboard path. Browser autoplay policies can require Play inside the player.
+
+Run `npm.cmd run verify` before owner deployment. Use an isolated browser profile for manual theme persistence, focus, rail boundaries, trailer lifecycle and both color schemes. The existing [PowerShell startup workflow](#local-setup-on-windows) is unchanged. Phase 8B remains local. Live playback eligibility can vary by title, browser and region.
+
+## Phase 8 cinematic experience
+
+Phases 5–8 are implemented locally and await owner deployment. The production site may show the earlier interface. Use the same [private-file PowerShell workflow](#local-setup-on-windows) for local startup.
+
+- Open `/` for the featured carousel, global search, and real movie and TV collections. Use the arrow and pause controls, then try a shelf’s View all link.
+- Open `/?q=Interstellar&genre=28` to verify that legacy movie-only search resolves to `/movies?q=Interstellar&genre=28`. Clearing the search stays on Movies and resumes the paused genre. Bare `/movies` and `/tv` keep their catalogue controls.
+- Open a movie and TV title. From the TV season gallery follow a season and an episode. Verify parent links, actual adjacent numbering and missing-artwork fallbacks. Try the new cards and collection controls with keyboard focus and system reduced motion enabled.
+- Test Favorites using a separate browser profile or synthetic data. The legacy and v2 storage contracts are unchanged.
+
+See [the Phase 8 design baseline](DESIGN_SYSTEM.md) for palette, components, responsive behavior and motion. Broader Phase 4C, 4D and 4E remain deferred. Phase 9 advanced discovery and Phase 10 final verification and deployment remain future work.
+
+## Phase 5 visual acceptance
+
+Use the same local startup block above. Check the footer on short and long Home, Favorites and Details pages. Compare the catalogue grid at compact phone, tablet, laptop and wide desktop widths with zero, one and many items. Throttle requests to see skeletons, try an empty search, and test a temporary API failure and Retry. Check image fallback, long titles, the keyboard focus outline, reduced motion and the new tab icon. For the implemented sizes, controls and palette, see the [design system](DESIGN_SYSTEM.md).
+
+Phases 4C, 4D and 4E remain deferred. This phase covers the visual foundations and targeted accessibility fixes. The full cinematic redesign remains a later phase.
+
+## Phase 7 movie and TV catalogue
+
+Phases 5, 6 and 7 are implemented locally. Deployment remains owner-managed. Use the same [PowerShell startup block](#local-setup-on-windows) and server-only credential for both APIs.
+
+| Open | What to verify |
+|---|---|
+| `/movies` or `/?q=Interstellar` | Dedicated movie catalogue and backward-compatible movie search |
+| `/tv?from=1990&to=1999&sort=rating` | Discover TV by first-air years and rank by rating |
+| `/tv?category=trending&period=day` | Daily Trending. Weekly is the default. Each period is one provider window. |
+| `/search?q=Avatar&type=tv&page=2` | TV-only search with paging. Omit `type` for mixed titles or use `type=movie` for movie-only search. |
+| `/tv/1399/season/1/episode/1` | Shareable episode URL. Series and season pages have their own links. |
+| `/favorites?type=tv` | Local TV favorites. Remove `type` for all favorites. |
+
+TV Discover supports TV genre, first-air year or range, original language, minimum rating and votes, and catalogue sorting. Other TV feeds pause Discover filters. TMDB multi-search may report people and other excluded records in its totals. Pages show only eligible movie and series titles and are never backfilled by fetching later pages.
+
+Valid legacy movies load from `favoritesList` when `favoritesList:v2` is absent. The first successful change writes a versioned collection while preserving the original key. Movie IDs and TV IDs can overlap. For acceptance testing of migration and write failures, use an isolated browser profile and synthetic storage, or run `node --test test/favorites-storage.test.js`. An older build uses the legacy movie snapshot and ignores subsequent v2 changes.
+
+Run `npm.cmd test` and `npm.cmd run build` for local checks. Before owner deployment, exercise the example URLs, Back/Forward, direct refresh, Specials, nonconsecutive neighbors, images with missing artwork, and shared movie and TV favorites in an isolated browser. Phases 4C, 4D and 4E remain deferred apart from the migration safeguards in this phase. Phase 8 is the cinematic redesign, Phase 9 advanced discovery, and Phase 10 final verification and deployment.
+
+## Phase 6 movie catalogue
+
+Phase 5 and Phase 6 are implemented locally. The owner's production deployment is separate. Keep using the same [PowerShell startup block](#local-setup-on-windows).
+
+| Example URL | Behavior |
+|---|---|
+| `/?page=2` | Second page of default popularity-sorted Discover |
+| `/?q=Interstellar&page=2` | Second page of title search |
+| `/?category=top-rated&page=5` | Fifth page of TMDB Top Rated |
+| `/?category=trending&period=day` | Official daily Trending. Weekly is the default. |
+| `/?genre=28&year=1999&page=2` | Exact-year and genre discovery |
+| `/?from=1980&to=1989&language=ko&rating=7&sort=rating` | Inclusive year range, Korean original language and minimum rating |
+
+Discover also supports minimum votes, a runtime range, and sorting by popularity, average rating, votes, newest or oldest primary release, or revenue. Use Advanced filters and sort to apply staged edits. Applying a date range replaces an exact year, and entering a valid exact year clears the range. Release filters refer to primary release dates. Search and official feeds do not apply Discover filters. Clearing a search returns to the previous Home category and filter state on page one.
+
+Use the numbered page controls or Go to page. Changes to the query, filters, or list reset to page one. Refresh and Back/Forward preserve the state recorded in the URL. TMDB limits paginated requests to 500 pages, or roughly 10,000 provider results at 20 per page. Some queries have fewer results and official feed totals can include entries omitted by the app's adult-content policy. Trending uses the documented one-page-per-period contract. Refine criteria to see different slices of the catalogue.
+
+For local acceptance, open the examples, change filters while on a later page, navigate via Back/Forward, and try an out-of-range page on a narrow query. Verify that failed requests can be retried and old responses never replace newer results. Check mobile layouts and keyboard focus. The phase used a build and focused mocked tests. Comprehensive frontend and owner-deployed verification remain deferred. Phase 4C, 4D and 4E remain deferred.
 
 ## Dependency maintenance
 
@@ -151,4 +216,4 @@ try {
 
 ## API operations
 
-`GET /api/movies` uses a required `operation` parameter. Supported values are `discover` (optional `genre` and `year`), `search` (required `query`), `genres`, `popular`, and `details` (required `id`). Requests validate input before reaching TMDB, use a fixed upstream, time out after eight seconds, and return safe JSON errors. All API responses use `Cache-Control: no-store`. See [architecture](ARCHITECTURE.md#tmdb-integration-and-request-behavior) for status mappings, routing and public API abuse limitations.
+`GET /api/movies` supports Discover, title search, genres, Popular, Trending, Top Rated, Now Playing, Upcoming, details and videos. `GET /api/tv` supports its series catalogue, combined search, series/season/episode metadata and videos. Use `?operation=videos&id=550` on the applicable endpoint for validated YouTube choices. Requests use a fixed upstream, time out after eight seconds, and return safe JSON errors with `Cache-Control: no-store`. See [architecture](ARCHITECTURE.md#phase-8b-theme-and-trailer-boundaries) for the trailer contract.

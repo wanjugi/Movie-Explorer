@@ -1,49 +1,29 @@
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { defineStore } from 'pinia'
-
-// This helper function saves the favorites list to localStorage
-function saveToLocalStorage(favorites) {
-  localStorage.setItem('favoritesList', JSON.stringify(favorites))
-}
+import { mediaKey } from '../catalogue/mediaIdentity.js'
+import { normalizeFavorite, openFavorites, persistFavorites } from './favoritesStorage.js'
 
 export const useFavoritesStore = defineStore('favorites', () => {
+  let storage
+  try { storage = globalThis.localStorage } catch { /* blocked by browser */ }
+  const session = openFavorites(storage)
+  const favorites = ref(session.favorites)
+  const storageWarning = ref(session.warning)
 
-  // 1. STATE: The main list of favorite movies.
-  // It is loaded from the browser's memory (localStorage).
-  // If it's not there (||), it starts with an empty array [].
-  const favorites = ref(JSON.parse(localStorage.getItem('favoritesList')) || [])
-
-  // 2. ACTIONS: The functions that change the state.
-  //This function adds or removes a movie from the favorites list.
-   
-  function toggleFavorite(movie) {
-    // Check if the movie is already in the list.
-    // .findIndex() will give the movie's position, or -1 if it's not found.
-    const index = favorites.value.findIndex(item => item.id === movie.id)
-    if (index === -1) {
-      // The movie is NOT in the list, so it is added.
-      favorites.value.push(movie)
-    } else {
-      // The movie is in the list, so it is removed.
-      favorites.value.splice(index, 1)
-    }
-
-    // After adding or removing, save the new list back to localStorage.
-    localStorage.setItem('favoritesList', JSON.stringify(favorites.value))
+  function checkIsFavorite(id, type = 'movie') {
+    const key = mediaKey({ id, media_type: type })
+    return Boolean(key) && favorites.value.some(item => mediaKey(item) === key)
   }
 
-  // This function just checks if a movie is in the list.
-  function checkIsFavorite(movieId) {
-    return favorites.value.some(movie => movie.id === movieId)
+  function toggleFavorite(item) {
+    const favorite = normalizeFavorite(item, true)
+    if (!favorite) return
+    const key = mediaKey(favorite)
+    const index = favorites.value.findIndex(saved => mediaKey(saved) === key)
+    if (index === -1) favorites.value.push(favorite)
+    else favorites.value.splice(index, 1)
+    storageWarning.value = !persistFavorites(storage, session, favorites.value)
   }
 
-  // 3. RETURN: We must return the state and functions so other components can use them.
-  return {
-    //state
-    favorites,
-    //actions
-    toggleFavorite,
-    checkIsFavorite
-  }
-
+  return { favorites, storageWarning, toggleFavorite, checkIsFavorite }
 })

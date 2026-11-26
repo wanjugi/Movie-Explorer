@@ -4,7 +4,7 @@ import route from '../api/movies.js'
 import { handleMovieRequest } from '../server/movies.js'
 
 const fixtureKey = ['mock', 'upstream', 'key'].join('-')
-const movie = { id: 550, title: 'Example movie', release_date: '1999-10-15', poster_path: '/example.jpg' }
+const movie = { id: 550, title: 'Example movie', release_date: '1999-10-15', poster_path: '/example.jpg', adult: false }
 const page = { page: 1, results: [movie], total_pages: 20, total_results: 400 }
 const details = { ...movie, vote_average: 7, credits: { cast: [{ id: 4, name: 'Example actor' }], crew: [] } }
 
@@ -81,7 +81,7 @@ test('genres keep the current language and array envelope', async () => {
   assert.equal(calls[0].url.searchParams.get('language'), 'en')
 })
 
-test('the retained unused Popular operation keeps page one', async () => {
+test('Popular keeps page one when no page is provided', async () => {
   const { response, calls } = await request('operation=popular')
   assert.equal(response.status, 200)
   assert.equal(calls[0].url.pathname, '/3/movie/popular')
@@ -125,7 +125,7 @@ test('missing, blank, oversized, malformed and control character searches are re
 
 test('unexpected and duplicated parameters are rejected before calling TMDB', async () => {
   for (const query of [
-    'operation=discover&page=2', 'operation=discover&include_adult=true',
+    'operation=genres&page=2', 'operation=discover&include_adult=true',
     'operation=discover&operation=search', 'operation=discover&genre=28&%67enre=12',
     'operation=search&query=one&query=two', 'operation=genres&language=fr',
     'operation=details&id=550&append_to_response=reviews',
@@ -137,7 +137,7 @@ test('unexpected and duplicated parameters are rejected before calling TMDB', as
 })
 
 test('unsupported operations are not dispatched, including object property names', async () => {
-  for (const name of ['trending', 'constructor', '__proto__', '%2Fmovie%2F550']) {
+  for (const name of ['trending-tv', 'constructor', '__proto__', '%2Fmovie%2F550']) {
     const result = await request('operation=' + name)
     assertError(result, 404, 'UNKNOWN_OPERATION')
     assert.equal(result.calls.length, 0)
@@ -260,5 +260,66 @@ test('successful responses disable storage for each operation and error response
     assert.equal(response.headers.get('cache-control'), 'no-store')
     assert.equal(response.headers.get('x-content-type-options'), 'nosniff')
   }
-  assertError(await request('operation=discover&page=20'), 400, 'INVALID_PARAMETERS')
+  assertError(await request('operation=discover&page=501'), 400, 'INVALID_PARAMETERS')
+})
+
+test('catalogue list operations forward a bounded page and preserve TMDB pagination metadata', async () => {
+  const envelope = { ...page, page: 500, total_pages: 1200, total_results: 24000 }
+  for (const [operation, pathname] of [
+    ['discover', '/3/discover/movie'], ['search', '/3/search/movie'],
+    ['popular', '/3/movie/popular'], ['top-rated', '/3/movie/top_rated'],
+    ['now-playing', '/3/movie/now_playing'], ['upcoming', '/3/movie/upcoming'],
+  ]) {
+    const query = operation === 'search' ? '&query=Movie' : ''
+    const result = await request('operation=' + operation + '&page=500' + query, {
+      upstream: () => Response.json(envelope),
+    })
+    assert.equal(result.response.status, 200)
+    assert.deepEqual(result.body, envelope)
+    assert.equal(result.calls[0].url.pathname, pathname)
+    assert.equal(result.calls[0].url.searchParams.get('page'), '500')
+  }
+  for (const raw of ['', '0', '-1', '1.5', '01', '501', '1e2', '9999999999999', '1&page=2']) {
+    const result = await request('operation=discover&page=' + raw)
+    assertError(result, 400, 'INVALID_PARAMETERS')
+    assert.equal(result.calls.length, 0)
+  }
+})
+
+test('Trending uses its official weekly or daily endpoint and only returns classified non-adult entries', async () => {
+  const fixture = { ...page, results: [movie, { ...movie, id: 551, adult: true }, { ...movie, id: 552, adult: undefined }] }
+  for (const [parameter, period] of [['', 'week'], ['&period=day', 'day']]) {
+    const result = await request('operation=trending' + parameter, { upstream: () => Response.json(fixture) })
+    assert.equal(result.response.status, 200)
+    assert.equal(result.calls[0].url.pathname, '/3/trending/movie/' + period)
+    assert.equal(result.calls[0].url.searchParams.has('page'), false)
+    assert.deepEqual(result.body, { ...page, results: [movie] })
+  }
+  assertError(await request('operation=trending&period=month'), 400, 'INVALID_PARAMETERS')
+  assertError(await request('operation=trending&page=2'), 400, 'INVALID_PARAMETERS')
+})
+
+test('advanced Discover inputs are explicitly mapped and rejected outside their supported scope', async () => {
+  const good = await request('operation=discover&genre=28&from=1980&to=1989&language=ko&rating=7.5&votes=30&runtimeMin=60&runtimeMax=180&sort=rating')
+  assert.equal(good.response.status, 200)
+  const query = good.calls[0].url.searchParams
+  assert.deepEqual(Object.fromEntries(query), {
+    language: 'en-US', page: '1', sort_by: 'vote_average.desc', include_adult: 'false',
+    with_genres: '28', 'primary_release_date.gte': '1980-01-01', 'primary_release_date.lte': '1989-12-31',
+    with_original_language: 'ko', 'vote_average.gte': '7.5', 'vote_count.gte': '30',
+    'with_runtime.gte': '60', 'with_runtime.lte': '180', api_key: fixtureKey,
+  })
+  for (const query of [
+    'discover&from=999',
+    'discover&from=2025&to=1980', 'discover&year=1999&to=2025',
+    'discover&language=zz', 'discover&language=ko&language=en',
+    'discover&rating=10.1', 'discover&rating=-2', 'discover&votes=1.5',
+    'discover&runtimeMin=120&runtimeMax=90', 'discover&runtimeMax=1441',
+    'discover&genre=28%7C12', 'discover&sort=vote_average.desc',
+    'search&query=Movie&language=ko', 'popular&genre=28', 'now-playing&region=KE',
+  ]) {
+    const result = await request('operation=' + query)
+    assertError(result, 400, 'INVALID_PARAMETERS')
+    assert.equal(result.calls.length, 0)
+  }
 })

@@ -101,10 +101,16 @@ test('versioned hosting rules target only known deep links and leave API/assets 
   assert.deepEqual(config.rewrites, [
     { source: '/favorites', destination: '/index.html' },
     { source: '/movie/:id', destination: '/index.html' },
+    { source: '/movies', destination: '/index.html' },
+    { source: '/tv', destination: '/index.html' },
+    { source: '/search', destination: '/index.html' },
+    { source: '/tv/:id', destination: '/index.html' },
+    { source: '/tv/:id/season/:seasonNumber', destination: '/index.html' },
+    { source: '/tv/:id/season/:seasonNumber/episode/:episodeNumber', destination: '/index.html' },
   ])
   for (const { source } of config.rewrites) {
-    const matcher = new RegExp('^' + source.replace(':id', '[^/]+') + '/?$')
-    for (const path of ['/api/movies', '/api/unknown', '/assets/example.js', '/assets/example.css', '/favicon.ico']) {
+    const matcher = new RegExp('^' + source.replace(/:[A-Za-z]+/g, '[^/]+') + '/?$')
+    for (const path of ['/api/movies', '/api/tv', '/api/unknown', '/assets/example.js', '/assets/example.css', '/favicon.ico']) {
       assert.equal(matcher.test(path), false)
     }
   }

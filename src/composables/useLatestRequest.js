@@ -3,7 +3,7 @@ import { computed, onScopeDispose, ref, shallowRef } from 'vue'
 const idle = () => ({ status: 'idle', data: null, error: null })
 const MAX_TIMER_DELAY = 2_147_483_647
 
-export function useLatestRequest() {
+export function useLatestRequest({ isEmpty = data => Array.isArray(data) && data.length === 0 } = {}) {
   const state = shallowRef(idle())
   const retryBlocked = ref(false)
   let controller
@@ -42,7 +42,7 @@ export function useLatestRequest() {
     try {
       const data = await request(owner.signal)
       if (controller !== owner) return
-      const empty = Array.isArray(data) && data.length === 0
+      const empty = isEmpty(data)
       state.value = { status: empty ? 'empty' : 'success', data, error: null }
     } catch (error) {
       if (controller !== owner) return

@@ -33,7 +33,8 @@ test('Vite serves app and API routes with server-only authentication', async t =
     const origin = `http://127.0.0.1:${vite.httpServer.address().port}`
     const fetchPath = path => fetchLocal(origin + path, { signal: AbortSignal.timeout(5000) })
 
-    for (const path of ['/', '/favorites', '/movie/550']) {
+    for (const path of ['/', '/favorites', '/movie/550', '/movies', '/tv', '/search?q=Avatar',
+      '/tv/1399', '/tv/1399/season/0', '/tv/1399/season/0/episode/1']) {
       const response = await fetchPath(path)
       assert.equal(response.status, 200)
       assert.match(response.headers.get('content-type'), /text\/html/)
@@ -54,13 +55,21 @@ test('Vite serves app and API routes with server-only authentication', async t =
     assert.equal(upstreamCalls[0].pathname, '/3/genre/movie/list')
     assert.ok(upstreamCalls[0].searchParams.get('api_key') === serverKey)
 
-    for (const path of ['/src/router/index.js', '/src/services/moviesApi.js']) {
+    const tvGenres = await fetchPath('/api/tv?operation=genres')
+    assert.equal(tvGenres.status, 200)
+    assert.deepEqual(await tvGenres.json(), { genres: [{ id: 28, name: 'Action' }] })
+    assert.equal(upstreamCalls.length, 2)
+    assert.equal(upstreamCalls[1].pathname, '/3/genre/tv/list')
+    assert.ok(upstreamCalls[1].searchParams.get('api_key') === serverKey)
+
+    for (const path of ['/src/router/index.js', '/src/services/moviesApi.js', '/src/services/tvApi.js']) {
       const response = await fetchPath(path)
       assert.equal(response.status, 200)
       const clientModule = await response.text()
       assert.ok(![serverKey, legacyKey, 'TMDB_API_KEY', 'api.themoviedb.org']
         .some(marker => clientModule.includes(marker)), `${path} exposed server configuration`)
       if (path.includes('moviesApi')) assert.ok(clientModule.includes('/api/movies?'))
+      if (path.includes('tvApi')) assert.ok(clientModule.includes('/api/tv?'))
     }
   } finally {
     try {
