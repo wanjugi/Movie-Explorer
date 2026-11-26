@@ -1,8 +1,8 @@
 # MovieExplorer architecture
 
-**Baseline version 2 · 2026-11-26 · Movie-only application after local Phase 3A/3B implementation**
+**Baseline version 3 · 2026-11-26 · Movie-only application after Phase 3C maintenance**
 
-This reference describes what is implemented in the local source. Production observations are from the preceding read-only audit. Future architecture is recorded separately below. See [Design system](DESIGN_SYSTEM.md) for visual specifications and [Agent instructions](AGENTS.md) for workflow and preservation rules.
+This reference describes the local source. Production observations distinguish previous audit results and owner-confirmed Phase 3D verification. Future architecture is recorded separately below. See [Design system](DESIGN_SYSTEM.md) for visual specifications and [Agent instructions](AGENTS.md) for workflow and preservation rules.
 
 ## Purpose and stack
 
@@ -12,22 +12,28 @@ Versions below are resolved direct dependencies in [package-lock.json](package-l
 
 | Dependency | Locked version | Responsibility |
 |---|---:|---|
-| Vue | 3.5.22 | Single-file components, Composition API and rendering |
+| Vue | 3.5.46 | Single-file components, Composition API and rendering |
 | Vue Router | 4.6.3 | HTML5 history, routes and links |
 | Pinia | 3.0.3 | Shared search and favorites state |
-| Axios | 1.12.2 | Declared runtime dependency. Application HTTP uses native Fetch. |
-| Vite | 7.1.11 | Dev server and production bundling |
+| Vite | 7.3.8 | Dev server and production bundling |
 | @vitejs/plugin-vue | 6.0.1 | Vue SFC compilation |
 | vite-plugin-vue-devtools | 8.0.3 | DevTools integration |
 | Tailwind CSS | 3.4.18 | Active CSS generator |
 | @tailwindcss/forms | 0.5.10 | Active form styling plugin |
-| @tailwindcss/postcss | 4.1.15 | Inactive Tailwind 4 integration |
-| @tailwindcss/vite | 4.1.15 | Inactive Tailwind 4 integration |
-| PostCSS | 8.5.6 | CSS processing |
+| PostCSS | 8.5.33 | CSS processing |
 | Autoprefixer | 10.4.21 | CSS vendor prefixes |
 | gh-pages | 6.3.0 | GitHub Pages publishing script |
 
-The project uses JavaScript ES modules. Node engine is `^20.19.0 || >=22.12.0`. The built-in Node test runner covers movie API, client contracts and rewrite scope with mocked requests. No npm version, linting, formatting, automated type checking, or local CI workflow is configured. SVG icons are inline. Native browser APIs provide Fetch, history, and storage.
+The project uses JavaScript ES modules. The Node engine remains `^20.19.0 || >=22.12.0`. Phase 3C verification ran on Node 22.23.5 and npm 11.4.1. No npm version, linting, formatting, automated type checking, or local CI workflow is configured. SVG icons are inline. Native browser APIs provide Fetch, history, and storage.
+
+### Phase 3C dependency maintenance
+
+- Removed Axios 1.12.2 because both client and server use native Fetch. Removed the two Tailwind 4 adapters at 4.1.15. Tailwind 3 continues to run through PostCSS and the forms plugin.
+- Updated Vue 3.5.22 to 3.5.46, Vite 7.1.11 to 7.3.8, and PostCSS 8.5.6 to 8.5.33 to address current audit findings within the existing majors. Vue's audit finding came from the bundled dependency on its server renderer. MovieExplorer is a client-rendered SPA. Vite and PostCSS findings chiefly affected development/build tooling.
+- Updated affected transitives within existing ranges, including Rollup, Babel, Picomatch, Nano ID, selector parsing, and source-map dependencies. Sucrase 3.35.1 removed the remaining audited glob/minimatch chain from Tailwind 3.
+- Refreshed Browserslist 4.29.6, `baseline-browser-mapping` 2.11.39, and `caniuse-lite` 1.0.30001828. The official Browserslist updater confirmed the current database version. The compatibility warnings disappeared in a dev CSS request and the final build. The generated CSS matched the pre-maintenance build byte for byte.
+- The full npm audit fell from 18 affected packages to zero. The final production-only audit also reported zero. This is a registry snapshot. Recheck both before future maintenance releases.
+- Kept the SFC and DevTools plugins active, along with Vue Router, Pinia, Tailwind 3, the forms plugin, and Autoprefixer. The legacy `gh-pages` dependency and `deploy` script remain pending owner confirmation about any external GitHub Pages use.
 
 ## Repository map and responsibilities
 
@@ -57,7 +63,8 @@ Generated output, dependencies, and repository internals are omitted.
 │  └─ vite-movie-api.js
 ├─ test/
 │  ├─ frontend-api-routing.test.js
-│  └─ movies-api.test.js
+│  ├─ movies-api.test.js
+│  └─ vite-api.test.js
 ├─ public/favicon.ico
 └─ src/
    ├─ App.vue
@@ -102,7 +109,7 @@ Generated output, dependencies, and repository internals are omitted.
 | [api/movies.js](api/movies.js), [server/movies.js](server/movies.js) | Vercel Web handler and shared server-only dispatcher for validated, authenticated TMDB requests. |
 | [server/vite-movie-api.js](server/vite-movie-api.js) | Local Vite dev/preview adapter. Uses the same handler as Vercel. |
 | [vercel.json](vercel.json) | Scoped SPA rewrites for the two existing deep-link paths. |
-| [test/](test) | Node tests for API validation, responses, frontend contracts and rewrite scope. |
+| [test/](test) | Built-in Node tests for API validation, frontend contracts, versioned rewrites and local Vite HTTP integration. |
 | [package.json](package.json) and [package-lock.json](package-lock.json) | Package metadata, scripts, direct dependencies, and resolved npm dependency tree. |
 | [.vscode/extensions.json](.vscode/extensions.json) and [README.md](README.md) | Vue editor recommendation and project setup, verification and deployment instructions. |
 | [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md), [AGENTS.md](AGENTS.md) | Visual baseline and repository rules. |
@@ -209,26 +216,32 @@ Numeric IDs are scoped to the media entity. A future movie and series with the s
 
 - **Repository** [wanjugi/Movie-Explorer](https://github.com/wanjugi/Movie-Explorer)
 - **Public production** [MovieExplorer on Vercel](https://movie-explorer-nine-gilt.vercel.app/)
-- **Scripts** `npm run dev` runs Vite with the local API middleware. `npm run build` writes default client output to `dist/`. `npm run preview` serves the built frontend and the same local API. The existing `npm run deploy` script builds and publishes to GitHub Pages, which cannot host this server API.
+- **Scripts** `npm run dev` runs Vite with the local API middleware. `npm run build` writes client output to `dist/`. `npm run preview` serves the built frontend and local API. `npm test` runs the built-in test suite and `npm run verify` runs tests then builds. The legacy `npm run deploy` publishes to GitHub Pages, which cannot host this server API.
 - **Local environment** The Vite adapter reads `TMDB_API_KEY` from the server process or Vite's private mode env files. No credential is needed for the frontend build or mocked tests. Windows commands and owner steps are in [README.md](README.md).
 - **Vercel configuration** Use the Vite preset, a compatible Node runtime, `dist` output and a private `TMDB_API_KEY` in the intended environments. The function is discovered at `api/movies.js`, with its shared code outside the client and API route tree.
 - **Routing precedence** Vue Router retains `createWebHistory` and the default root base. [vercel.json](vercel.json) rewrites only `/favorites` and `/movie/:id` to `/index.html`. The root uses the regular index. The rules do not match `/api`, unknown API paths, `/assets`, or `/favicon.ico`. Unknown app paths outside those rules receive the platform 404. Paths matching a movie route receive the SPA document, even if the movie ID is invalid or the API later returns 404. No client-side not-found view was added. [Vercel Vite routing](https://vercel.com/docs/frameworks/frontend/vite)
 - **Known local differences** Vite supplies its own app HTML fallback. The local API middleware intercepts `/api` before it, returning JSON 404 for unrecognized API paths. Vite dev/preview do not execute Vercel rewrite rules. The rewrite config and local HTTP behavior can be tested locally. Vercel packaging and HTTP results need an owner-deployed preview or production instance.
-- **Previous production audit** Root returned 200 and direct `/favorites` and `/movie/550` returned 404 without a SPA fallback. The public JS contained the old configured key. Implementing new source does not remove or revoke a public key from the existing deployment. Perform the owner cutover and replacement steps in the README.
-- **Unverified** Dashboard settings, environment scopes, the deployed source revision and post-release behavior. Existing metadata remains sparse and there is no SSR or prerender setup.
+- **Production history** The original audit found deep-link failures and a public key in the deployed JS. The owner subsequently confirmed Phase 3D passed 12 production checks and a credential scan, and reported the credential matter resolved. The owner manages automatic Vercel deployments from GitHub main.
+- **Unverified in Phase 3C** The new package set has not been deployed as part of this work. Dashboard settings and environment scopes were not inspected. Existing metadata remains sparse and there is no SSR or prerender setup.
+
+### Testing foundation
+
+The 27 built-in Node tests cover mocked upstream requests, validation, safe failures, service contracts and Vercel rewrite scope. The Vite integration test starts the app on an ephemeral loopback port, verifies the three SPA routes and unknown API behavior, mocks a successful upstream call, and checks transformed client modules for synthetic secret markers. It requires no real credentials. See [README.md](README.md#development-commands) for commands.
+
+For Phase 4, Vitest with Vue Test Utils v2 and a compatible DOM emulator could add component coverage for search, request states, persistence and routes. Select Vitest and DOM versions against both supported Node lines and Vite 7. Current Vitest 5 requires Node 22.12 or newer in its supported lines. Vitest 4 can support Node 20 alongside Vite 7. Browser automation can later verify representative viewports, navigation and keyboard interactions. It adds browser binaries and CI maintenance, so the current phase retains Node tests alone. [Vitest setup](https://vitest.dev/guide/) · [Vue Test Utils v2](https://test-utils.vuejs.org/guide/)
 
 ## Technical debt register
 
 | ID | Classification | Evidence and impact | Relevant source |
 |---|---|---|---|
-| T01 | Confirmed historical production exposure | New source holds auth server-side. Existing deployed assets and credential remain exposed until the owner deploys and replaces/revokes the old key. | Current server handler and prior public build |
-| T02 | Confirmed production defect before deployment | Versioned deep-link rewrites now exist locally. Actual Vercel behavior after deployment is unverified. | router lines 6–26 and vercel.json |
+| T01 | Historical production exposure | Authentication is server-side. Owner reported production credential verification and resolution in Phase 3D. | Current server handler and prior public build |
+| T02 | Historical production defect | Owner verified production deep links in Phase 3D. Phase 3C retains the rewrites and checks route behavior locally. | router lines 6–26 and vercel.json |
 | T03 | Confirmed state defect | Empty and failed lists/details appear to be loading. Genre failures leave the default option alone. | Home lines 21–36,63–68, Detail lines 19–28, moviesApi |
 | T04 | Confirmed UI request race | Parameters are now safely serialized. Overlapping effects can still commit responses out of order. | Home lines 21–36, frontend movie service |
 | T05 | Confirmed navigation limitation | Search is global to edit and Home-only to view. A reused detail route does not fetch a changed ID. | AppHeader lines 25–33, Home lines 21–36, Detail lines 10–20 |
 | T06 | Confirmed persistence limitation | Invalid local data or denied writes can fail. Stored snapshots can grow stale. TV ID collisions would arise with numeric-only identity. | favoritesStore lines 14–37 |
 | T07 | Architectural limitation | One page per result, no cache or shared abuse quota, no UI request cancellation or deduplication. | Shared server handler and Home effect |
-| T08 | Maintenance issue | Repeated poster construction, unused Popular wrapper, prototype, unused store import/helper, Axios and inactive Tailwind 4 adapters. | MovieCard, MovieDetailView, moviesApi, testView, favoritesStore, package.json |
+| T08 | Maintenance issue | Repeated poster construction, unused Popular wrapper, prototype and unused store import/helper. Legacy GitHub Pages tooling awaits owner confirmation. | MovieCard, MovieDetailView, moviesApi, testView, favoritesStore, package.json |
 | T09 | Partial quality infrastructure | Focused Node API tests exist. Component/browser suites, type/lint/format scripts and local CI remain absent. | test/ and package.json |
 | T10 | Confirmed input/data gaps | Incomplete year edits can fetch. Null or malformed data can break details rating or cast and produce broken image URLs. | Home lines 56–59, Detail lines 33–75, moviesApi |
 | T11 | Security hygiene | Private env files are now covered by ignore rules. Existing tracking and history remain unverified. | .gitignore |

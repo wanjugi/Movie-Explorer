@@ -38,7 +38,7 @@ Use direct filesystem inspection for file checks within scope. Automatic deploym
 ## Security and privacy
 
 - Keep credentials confidential. Never print environment variable values, credential-bearing URLs, tokens, authorization headers or private user storage contents. Refer to environment variable names only.
-- Keep new secrets out of client bundles, public assets, logs, documentation and test fixtures. The current TMDB key exposure is documented in Architecture for remediation under an authorized phase.
+- Keep new secrets out of client bundles, public assets, logs, documentation and test fixtures. Architecture records the historical TMDB key exposure and the current server-only integration.
 - Validate API inputs and allowlist any approved server-side proxy endpoints and parameters. Unrestricted proxying is prohibited.
 - Protect user data during migrations. Report security concerns with evidence and impact while keeping sensitive values out of the report.
 

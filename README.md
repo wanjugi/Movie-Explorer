@@ -6,27 +6,62 @@ MovieExplorer is a Vue 3 single-page app for movie discovery, search, details an
 
 Use Node `^20.19.0 || >=22.12.0`. For a fresh checkout, install the locked dependencies with `npm.cmd ci`. This uses the existing npm lockfile. The local API runs with Vite, without Vercel CLI or account linking.
 
-From the repository root in PowerShell, enter the TMDB v3 API key at the masked prompt. Paste the value from your private TMDB account settings, then clear your clipboard if used. The key is scoped to the current PowerShell process and its child processes.
+From the repository root in PowerShell, use the following block to start Vite with the key already in your private `.env.local`. It prefers `TMDB_API_KEY` and temporarily supports the legacy name as a local migration fallback. It passes the selected value only to the server process environment and restores the session's prior state when Vite stops.
 
 ```powershell
-$movieExplorerSecret = Read-Host 'TMDB v3 API key' -AsSecureString
+$movieExplorerPreviousKey = $env:TMDB_API_KEY
 try {
-  $env:TMDB_API_KEY = [System.Net.NetworkCredential]::new('', $movieExplorerSecret).Password
+  $movieExplorerValues = @{}
+  foreach ($movieExplorerLine in (Get-Content -LiteralPath .env.local -ErrorAction SilentlyContinue)) {
+    $movieExplorerMatch = [regex]::Match($movieExplorerLine, '^\s*(?:export\s+)?(TMDB_API_KEY|VITE_TMDB_API_KEY)\s*=\s*(.*?)\s*$')
+    if ($movieExplorerMatch.Success) {
+      $movieExplorerName = $movieExplorerMatch.Groups[1].Value
+      $movieExplorerValues[$movieExplorerName] = ($movieExplorerMatch.Groups[2].Value -replace '\s+#.*$').Trim().Trim([char[]]@('"', "'"))
+    }
+  }
+  $movieExplorerKey = $movieExplorerValues['TMDB_API_KEY']
+  if (-not $movieExplorerKey) { $movieExplorerKey = $movieExplorerValues['VITE_TMDB_API_KEY'] }
+  if (-not $movieExplorerKey) { $movieExplorerKey = $movieExplorerPreviousKey }
+  if (-not $movieExplorerKey) { throw 'Configure TMDB_API_KEY in your private .env.local before starting Vite.' }
+  $env:TMDB_API_KEY = $movieExplorerKey
   npm.cmd run dev
 } finally {
-  Remove-Item Env:TMDB_API_KEY -ErrorAction SilentlyContinue
-  Remove-Variable movieExplorerSecret -ErrorAction SilentlyContinue
+  if ($null -eq $movieExplorerPreviousKey) {
+    Remove-Item Env:TMDB_API_KEY -ErrorAction SilentlyContinue
+  } else {
+    $env:TMDB_API_KEY = $movieExplorerPreviousKey
+  }
+  Remove-Variable movieExplorerPreviousKey,movieExplorerValues,movieExplorerLine,movieExplorerMatch,movieExplorerName,movieExplorerKey -ErrorAction SilentlyContinue
 }
 ```
 
-Open the localhost URL Vite prints. As an alternative, use the blank variable name in [.env.example](.env.example) to configure `TMDB_API_KEY` privately in an ignored `.env.development.local` file. Use an ignored `.env.production.local` or the same interactive shell method for `npm.cmd run preview`; the Vite preview command uses production mode by default. The app does not read the old public variable. Vite exposes no custom environment variables to client code. Existing local environment files are not migrated automatically.
+Open the localhost URL Vite prints. If `.env.local` already defines `TMDB_API_KEY`, plain `npm.cmd run dev` also works. See [.env.example](.env.example) for the private variable name. Use `npm.cmd run preview` to serve an existing build with the same API, or substitute that command in the block above. Vite preview uses production mode by default. The app and Vercel function read only the server variable. The legacy name is accepted solely by the local PowerShell block. If the old credential was revoked, use a valid current server key in your private configuration.
+
+## Development commands
+
+| Command | Purpose |
+|---|---|
+| `npm.cmd run dev` | Local Vite server with the shared movie API |
+| `npm.cmd run build` | Production client build |
+| `npm.cmd run preview` | Serve built assets with the local API |
+| `npm.cmd test` | Node tests with mocked TMDB, including local route and client isolation checks |
+| `npm.cmd run verify` | Run tests and then build |
+| `npm.cmd run deploy` | Legacy GitHub Pages publish command, retained pending owner confirmation. Use the owner-managed Vercel workflow for the current app. |
+
+Tests and build require no TMDB key. The integration test uses an ephemeral loopback port and synthetic values. Vite preview uses its own routing, so verify Vercel rewrites on a deployment during the owner-managed release.
+
+## Dependency maintenance
+
+Phase 3C removed unused Axios and both unused Tailwind 4 adapters. The app stays on Vue 3.5, Vite 7, Tailwind 3, and PostCSS 8. Compatible security updates and the browser data refresh cleared the npm audit findings and stale compatibility warnings at verification time. See [the dependency record](ARCHITECTURE.md#phase-3c-dependency-maintenance) for versions and decisions.
 
 ```powershell
-node --test
-npm.cmd run build
+npm.cmd audit
+npm.cmd audit --omit=dev
+npx.cmd update-browserslist-db@latest
+npm.cmd run verify
 ```
 
-Tests mock TMDB and need no key. Building also needs no key. To serve the build with the local API, run the interactive secret-entry block with `npm.cmd run preview` in place of `npm.cmd run dev`. Vite local preview verifies the compiled SPA and shared API handler. It does not execute Vercel rewrites.
+The Browserslist updater refreshes its data in the lockfile. Keep the data packages transitive and review the lockfile and generated CSS when updating. No component or browser test framework is installed. Phase 4 can evaluate Vitest and Vue Test Utils when component work begins.
 
 ## Owner migration and deployment checklist
 
