@@ -1,5 +1,5 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import ContentState from '@/components/ContentState.vue'
 import DetailSkeleton from '@/components/DetailSkeleton.vue'
@@ -7,6 +7,12 @@ import FavoriteButton from '@/components/FavoriteButton.vue'
 import MediaDetailHero from '@/components/MediaDetailHero.vue'
 import CastGallery from '@/components/CastGallery.vue'
 import TrailerButton from '@/components/TrailerButton.vue'
+import ConnectedTitles from '@/components/ConnectedTitles.vue'
+import CrewLinks from '@/components/CrewLinks.vue'
+import LibraryActions from '@/components/LibraryActions.vue'
+import WhereToWatch from '@/components/WhereToWatch.vue'
+import { sourceFor, watchLocation } from '@/catalogue/playbackSources.js'
+import { useLibraryStore } from '@/stores/libraryStore.js'
 import { isMediaId } from '@/catalogue/mediaIdentity.js'
 import { useRouteRequest } from '@/composables/useRouteRequest.js'
 import { fetchMovieById } from '@/services/moviesApi.js'
@@ -20,10 +26,21 @@ const movie = computed(() => state.value.data)
 const year = computed(() => /^\d{4}/.exec(movie.value?.release_date ?? '')?.[0])
 const genres = computed(() => Array.isArray(movie.value?.genres) ? movie.value.genres
   .map(genre => genre?.name).filter(name => typeof name === 'string' && name).join(' · ') : '')
-const rating = computed(() => movie.value?.vote_count > 0 && movie.value.vote_average >= 0 && movie.value.vote_average <= 10
+const rating = computed(() => movie.value?.vote_count > 0 && Number.isFinite(movie.value.vote_average)
+  && movie.value.vote_average >= 0 && movie.value.vote_average <= 10
   ? movie.value.vote_average.toFixed(1) : '')
 const runtime = computed(() => Number.isFinite(movie.value?.runtime) && movie.value.runtime > 0 ? movie.value.runtime + ' min' : '')
-const cast = computed(() => movie.value?.credits.cast.slice(0, 5) ?? [])
+const cast = computed(() => movie.value?.credits?.cast?.slice(0, 5) ?? [])
+const library = useLibraryStore()
+watch(movie, item => {
+  if (!item) return
+  document.title = item.title + ' | MovieExplorer'
+  library.visit(item)
+})
+const crew = computed(() => Array.isArray(movie.value?.credits?.crew)
+  ? movie.value.credits.crew.filter(person => person && (person.job === 'Director'
+    || ['Writing', 'Production'].includes(person.department))).slice(0, 24) : [])
+const identity = computed(() => ({ media_type: 'movie', id: movie.value?.id }))
 </script>
 
 <template>
@@ -51,6 +68,7 @@ const cast = computed(() => movie.value?.credits.cast.slice(0, 5) ?? [])
         <div class="feature-hero__actions">
           <FavoriteButton :item="movie" with-label />
           <TrailerButton type="movie" :id="movie.id" :title="movie.title" />
+          <RouterLink v-if="sourceFor(identity)" class="state-action" :to="watchLocation(identity)">Watch movie</RouterLink>
         </div>
       </MediaDetailHero>
       <section v-if="movie.overview" class="mt-8">
@@ -62,6 +80,14 @@ const cast = computed(() => movie.value?.credits.cast.slice(0, 5) ?? [])
         <div v-if="runtime"><dt>Runtime</dt><dd>{{ runtime }}</dd></div>
       </dl>
       <CastGallery :people="cast" />
+      <CrewLinks :credits="crew" />
+      <div class="mt-6 flex flex-wrap gap-2">
+        <LibraryActions :item="movie" watched />
+        <RouterLink v-if="isMediaId(movie.belongs_to_collection?.id)" class="catalogue-page-link"
+          :to="{ name: 'collection', params: { id: movie.belongs_to_collection.id } }">View collection</RouterLink>
+      </div>
+      <WhereToWatch :key="movie.id" type="movie" :id="movie.id" />
+      <ConnectedTitles :key="movie.id" type="movie" :id="movie.id" />
     </template>
   </section>
 </template>

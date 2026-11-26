@@ -5,6 +5,7 @@ import { TV_FIELDS } from '../src/catalogue/tvFilters.js'
 import { isMovieSummary, isTvSummary, readTvRouteParams } from '../src/catalogue/mediaIdentity.js'
 import { createTmdbHandler, isId } from './tmdb.js'
 import { videoOperation } from './videos.js'
+import { connectedOperations } from './discovery.js'
 
 const LANGUAGE = { language: 'en-US' }
 const isTvList = data => isMoviePageEnvelope(data) && data.results.every(isTvSummary)
@@ -55,6 +56,7 @@ function resource(kind) {
 }
 
 const operations = new Map([
+  ...connectedOperations('tv'),
   ['videos', videoOperation('tv')],
   ['discover', {
     parameters: ['page', ...Object.keys(TV_FIELDS)],

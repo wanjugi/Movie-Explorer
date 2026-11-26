@@ -1,4 +1,4 @@
-﻿# MovieExplorer design system
+# MovieExplorer design system
 
 **Baseline version 7 · 2026-11-26 · Phase 8B cinematic refinement**
 
@@ -25,7 +25,7 @@ MovieExplorer uses original green film branding, restrained light type, and near
 
 [App.vue](src/App.vue) retains one growing main landmark inside a viewport-height flex shell. The footer follows content on tall pages and sits low on short ones. The 90 rem shared frame has fluid horizontal gutters from 1 to 4 rem. Hero artwork breaks out to full main width while ordinary content aligns to the frame.
 
-[AppHeader](src/components/AppHeader.vue) combines the MovieExplorer mark, four primary sections, and compact [TitleSearch](src/components/TitleSearch.vue). A green underline indicates the section, including TV and movie detail descendants. At 850 px and below, navigation uses its own row. At 599 px and below, search uses a full-width third row. The footer retains the developer and technology credits, original external destinations, official TMDB logo and non-endorsement notice.
+[AppHeader](src/components/AppHeader.vue) combines the MovieExplorer mark, four primary sections, and compact [TitleSearch](src/components/TitleSearch.vue). A green underline indicates the section, including TV and movie detail descendants. At 850 px and below, navigation uses its own row. At 599 px and below, search uses a full-width third row. The footer displays the product and developer credits. The Library displays the TMDB logo and non-endorsement notice, and Where to Watch credits JustWatch.
 
 ## Home and rails
 
@@ -79,3 +79,9 @@ Catalogue and season tiles lift 5 px and scale to 1.055 over 280 ms. Rail tiles 
 Home chooses up to five unique movie and TV titles, preferring useful copy and filling from either feed. Rotation pauses offscreen, while interacting, while the document is hidden, and when a trailer is open. Manual slide changes are announced. Wide or high-density featured images can use the TMDB original candidate, and ordinary backdrops stay at w780/w1280. Only the current featured title selects the original variant. Rail poster sizes reflect rail widths. Episode heroes prefer the parent series backdrop while retaining the actual still in front. Portrait credits use responsive w45/w185 profiles, lazy loading and placeholders.
 
 Movie and TV title pages share [CastGallery](src/components/CastGallery.vue) and existing credits. TV identifies latest-season cast. Episode detail includes guest roles and crew. The season gallery shares the artwork lift, and episode rows provide one scoped link per episode. [TrailerExperience](src/components/TrailerExperience.vue) mounts outside the artwork and rails, with a themed shell, dark viewport, explicit provider disclosure and native YouTube controls.
+
+## Permanent design freeze
+
+The v1.0.0 verification phase preserves the existing visual tokens, spacing, layout, themes and motion. Missing movie metadata uses the existing conditional rendering and artwork fallback.
+
+The owner froze the Phase 8B cinematic design. Changes to existing visual tokens, layouts, motion, responsive behavior, or branding require explicit owner approval. Phase 9 features use the existing detail hero, profile artwork, poster grid, rails, content states, buttons and theme styles. New controls for playback, discovery and the Library follow those conventions.

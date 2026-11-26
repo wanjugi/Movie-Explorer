@@ -2,6 +2,7 @@ import { DISCOVER_FIELDS, hasInvertedRange } from '../src/catalogue/movieFilters
 import { createTmdbHandler, isId, isIdParameter } from './tmdb.js'
 import { isMoviePageEnvelope } from '../src/catalogue/moviePages.js'
 import { videoOperation } from './videos.js'
+import { connectedOperations, peopleOperations } from './discovery.js'
 
 const LANGUAGE = { language: 'en-US' }
 
@@ -21,6 +22,8 @@ function officialList(path) {
 }
 
 const operations = new Map([
+  ...peopleOperations,
+  ...connectedOperations('movie'),
   ['videos', videoOperation('movie')],
   ['discover', {
     parameters: ['page', ...Object.keys(DISCOVER_FIELDS)],
@@ -77,8 +80,8 @@ const operations = new Map([
       return [`/movie/${id}`, { language: 'en-US', append_to_response: 'credits' }]
     },
     validate: (data, params) => isMovie(data) && data.id === Number(params.get('id'))
-      && Number.isFinite(data.vote_average)
-      && Array.isArray(data.credits?.cast) && data.credits.cast.every(hasName),
+      && (data.vote_average == null || Number.isFinite(data.vote_average))
+      && (data.credits == null || (Array.isArray(data.credits.cast) && data.credits.cast.every(hasName))),
   }],
 ])
 

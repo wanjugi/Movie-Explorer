@@ -67,8 +67,11 @@ const message = computed(() => props.state.error instanceof MovieApiError
         · {{ data.total_results.toLocaleString('en-US') }} results reported by TMDB
       </p>
       <div class="media-grid">
-        <MovieCard v-for="(item, index) in data.results" :key="mediaKey(item)" :movie="item"
-          :eager="index < 2" :show-type="showType" />
+        <template v-for="(item, index) in data.results" :key="mediaKey(item) || item.id">
+          <slot name="item" :item="item" :index="index">
+            <MovieCard :movie="item" :eager="index < 2" :show-type="showType" />
+          </slot>
+        </template>
       </div>
     </div>
   </div>

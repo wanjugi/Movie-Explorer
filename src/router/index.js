@@ -4,6 +4,7 @@ import { isMovieBrowseRoute, movieBrowseCriteria, readMovieBrowseQuery } from '.
 import { readGlobalSearchQuery, readTvBrowseQuery, tvBrowseRequest } from './mediaBrowseQuery.js'
 
 const tvDetail = () => import('../views/TvDetailView.vue')
+const watchView = () => import('../views/WatchView.vue')
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -36,6 +37,12 @@ const router = createRouter({
     { path: '/movies', name: 'movies', component: () => import('../views/HomeView.vue') },
     { path: '/tv', name: 'tv', component: () => import('../views/TvBrowseView.vue') },
     { path: '/search', name: 'search', component: () => import('../views/SearchView.vue') },
+    { path: '/person/:id', name: 'person', component: () => import('../views/PersonView.vue') },
+    { path: '/collection/:id', name: 'collection', component: () => import('../views/CollectionView.vue') },
+    { path: '/library', name: 'library', component: () => import('../views/LibraryView.vue') },
+    { path: '/calendar', name: 'calendar', component: () => import('../views/CalendarView.vue') },
+    { path: '/watch/movie/:id', name: 'watch-movie', component: watchView },
+    { path: '/watch/tv/:id/season/:seasonNumber/episode/:episodeNumber', name: 'watch-episode', component: watchView },
     { path: '/tv/:id', name: 'tv-details', component: tvDetail },
     { path: '/tv/:id/season/:seasonNumber', name: 'tv-season', component: tvDetail },
     { path: '/tv/:id/season/:seasonNumber/episode/:episodeNumber', name: 'tv-episode', component: tvDetail },
@@ -59,6 +66,18 @@ router.beforeEach(to => {
   if (to.name === 'home' && legacyCatalogueKeys.some(key => Object.hasOwn(to.query, key))) {
     return { name: 'movies', query: to.query, hash: to.hash }
   }
+})
+
+const pageTitles = {
+  movies: 'Movies', tv: 'TV Series', search: 'Search', favorites: 'Favorites',
+  person: 'People', collection: 'Collection', library: 'Your Library', calendar: 'Release Calendar',
+  'movie-details': 'Movie Details', 'tv-details': 'TV Series Details', 'tv-season': 'Season Details',
+  'tv-episode': 'Episode Details', 'watch-movie': 'Watch Movie', 'watch-episode': 'Watch Episode',
+}
+router.afterEach((to, _, failure) => {
+  if (failure) return
+  const title = pageTitles[to.name]
+  document.title = title ? title + ' | MovieExplorer' : 'MovieExplorer — Discover Movies & TV Series'
 })
 
 export default router

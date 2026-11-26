@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch, onUnmounted } from 'vue'
+import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import ContentState from '@/components/ContentState.vue'
 import DetailSkeleton from '@/components/DetailSkeleton.vue'
@@ -8,6 +8,12 @@ import MediaDetailHero from '@/components/MediaDetailHero.vue'
 import MediaPoster from '@/components/MediaPoster.vue'
 import CastGallery from '@/components/CastGallery.vue'
 import TrailerButton from '@/components/TrailerButton.vue'
+import ConnectedTitles from '@/components/ConnectedTitles.vue'
+import CrewLinks from '@/components/CrewLinks.vue'
+import LibraryActions from '@/components/LibraryActions.vue'
+import WhereToWatch from '@/components/WhereToWatch.vue'
+import { sourceFor, watchLocation } from '@/catalogue/playbackSources.js'
+import { useLibraryStore } from '@/stores/libraryStore.js'
 import { isTvNumber, readTvRouteParams } from '@/catalogue/mediaIdentity.js'
 import { useRouteRequest } from '@/composables/useRouteRequest.js'
 import { fetchTvResource } from '@/services/tvApi.js'
@@ -41,7 +47,6 @@ const episode = computed(() => mode.value === 'episode')
 const season = computed(() => mode.value === 'season')
 const seriesDetails = computed(() => mode.value === 'details')
 const kind = computed(() => episode.value ? 'episode' : season.value ? 'season' : 'TV series')
-const baseTitle = 'MovieExplorer — Discover Movies & TV Series'
 const array = value => Array.isArray(value) ? value : []
 const text = value => typeof value === 'string' ? value.trim() : ''
 const path = value => typeof value === 'string' ? value : null
@@ -56,9 +61,9 @@ function readableCode(value, type) {
   catch { return code }
 }
 const countries = list => array(list).map(code => readableCode(code, 'region')).filter(Boolean).join(', ')
-const crewCredits = computed(() => array(data.value?.crew)
-  .filter(person => text(person?.name))
-  .map(person => [text(person.name), text(person.job)].filter(Boolean).join(' · ')))
+const crewCredits = computed(() => array(data.value?.crew))
+const seriesCrew = computed(() => array(data.value?.credits?.crew).filter(person => person
+  && (person.job === 'Director' || ['Writing', 'Production'].includes(person.department))).slice(0, 20))
 const minutes = value => positive(value) ? value + ' min' : ''
 const score = item => positive(item?.vote_count) && Number.isFinite(item?.vote_average)
   && item.vote_average >= 0 && item.vote_average <= 10 ? item.vote_average.toFixed(1) + ' / 10' : ''
@@ -80,9 +85,8 @@ const heading = computed(() => {
   return text(data.value.name) || (episode.value ? 'Episode ' + params.value.episode : 'Untitled series')
 })
 watch(() => data.value ? heading.value : '', title => {
-  document.title = title ? title + ' | MovieExplorer' : baseTitle
-}, { immediate: true })
-onUnmounted(() => { document.title = baseTitle })
+  if (title) document.title = title + ' | MovieExplorer'
+})
 
 const seriesLink = computed(() => ({ name: 'tv-details', params: { id: params.value.id } }))
 const seasonLink = (number = params.value.season) => ({
@@ -101,6 +105,24 @@ const favorite = computed(() => ({
   media_type: 'tv', id: data.value?.id, name: data.value?.name,
   first_air_date: data.value?.first_air_date, poster_path: path(data.value?.poster_path), vote_average: data.value?.vote_average,
 }))
+const library = useLibraryStore()
+watch(data, value => { if (value && seriesDetails.value) library.visit(favorite.value) })
+function episodeRecord(entry) {
+  return {
+    media_type: 'tv', id: Number(params.value.id), season: Number(params.value.season),
+    episode: entry.episode_number, name: entry.name || 'Episode ' + entry.episode_number,
+    seriesTitle: series.value?.name, poster_path: series.value?.poster_path, first_air_date: entry.air_date,
+  }
+}
+const episodeItem = computed(() => episode.value && data.value ? episodeRecord(data.value) : null)
+const watchedInSeason = computed(() => episodes.value.filter(entry => library.contains('watched', episodeRecord(entry))).length)
+function knownSeasonWatched(entry) {
+  const count = library.watched.filter(item => item.media_type === 'tv' && item.id === Number(params.value.id)
+    && item.season === entry.season_number).length
+  return isTvNumber(entry.episode_count) ? Math.min(count, entry.episode_count) : 0
+}
+const watchedInSeries = computed(() => seasons.value.filter(entry => entry.season_number !== 0)
+  .reduce((sum, entry) => sum + knownSeasonWatched(entry), 0))
 const facts = computed(() => {
   const item = data.value
   if (!item) return []
@@ -174,18 +196,24 @@ const detailKicker = computed(() => {
       </dl>
       <CastGallery v-if="seriesDetails" :people="starring" heading="Latest-season cast" />
       <CastGallery v-if="episode" :people="array(data.guest_stars)" heading="Guest cast" />
-      <section v-if="episode && crewCredits.length" class="cast-section">
-        <h2 class="detail-subheading">Crew</h2>
-        <ul class="flex flex-wrap gap-2">
-          <li v-for="(credit, index) in crewCredits" :key="index" class="cast-credit">{{ credit }}</li>
-        </ul>
-      </section>
+      <CrewLinks v-if="episode" :credits="crewCredits" heading="Episode crew" />
+      <CrewLinks v-if="seriesDetails" :credits="array(data.created_by)" heading="Creators" />
+      <CrewLinks v-if="seriesDetails" :credits="seriesCrew" heading="Latest-season crew" />
+      <div v-if="seriesDetails || episodeItem" class="mt-6 flex flex-wrap gap-2">
+        <LibraryActions v-if="seriesDetails" :item="favorite" />
+        <LibraryActions v-if="episodeItem" :item="episodeItem" episode />
+        <RouterLink v-if="episodeItem && sourceFor(episodeItem)" class="state-action" :to="watchLocation(episodeItem)">Watch episode</RouterLink>
+      </div>
+      <WhereToWatch v-if="seriesDetails" :key="data.id" type="tv" :id="data.id" />
       <nav v-if="!seriesDetails && neighbors.length" :aria-label="episode ? 'Adjacent episodes' : 'Adjacent seasons'" class="mt-6 flex flex-wrap gap-2">
         <RouterLink v-for="[number, label] in neighbors" :key="number" class="catalogue-page-link"
           :to="episode ? episodeLink(number) : seasonLink(number)">{{ label }} {{ episode ? 'episode' : 'season' }} {{ number }}</RouterLink>
       </nav>
       <section v-if="seriesDetails && seasons.length" aria-labelledby="seasons-heading" class="mt-8">
         <h2 id="seasons-heading" class="detail-subheading">Seasons</h2>
+        <p v-if="isTvNumber(data.number_of_episodes) && data.number_of_episodes > 0" class="mb-4 cinema-muted">
+          {{ Math.min(watchedInSeries, data.number_of_episodes) }} of {{ data.number_of_episodes }} episodes watched · Specials counted separately
+        </p>
         <div class="media-grid">
           <article v-for="entry in seasons" :key="entry.season_number" class="movie-tile artwork-lift">
             <RouterLink :to="seasonLink(entry.season_number)" class="movie-tile__link ui-focus">
@@ -195,6 +223,7 @@ const detailKicker = computed(() => {
             <p class="movie-tile__meta">
               <span v-if="entry.season_number !== 0">Season {{ entry.season_number }}</span>
               <span v-if="count(entry.episode_count) !== null">{{ entry.episode_count }} episodes</span>
+              <span v-if="count(entry.episode_count) > 0">{{ knownSeasonWatched(entry) }} watched</span>
               <span v-if="text(entry.air_date)">{{ entry.air_date.slice(0, 4) }}</span>
             </p>
             <p v-if="text(entry.overview)" class="mt-2 line-clamp-3 break-words text-sm cinema-muted">{{ entry.overview }}</p>
@@ -203,6 +232,7 @@ const detailKicker = computed(() => {
       </section>
       <section v-if="season" class="mt-8" aria-labelledby="episodes-heading">
         <h2 id="episodes-heading" class="detail-subheading">Episodes</h2>
+        <p v-if="episodes.length" class="mb-3 cinema-muted">{{ watchedInSeason }} of {{ episodes.length }} listed episodes watched</p>
         <ContentState v-if="!episodes.length" title="No episodes listed" message="TMDB does not list episodes for this season." />
         <ol v-else class="space-y-4">
           <li v-for="(entry, index) in episodes" :key="entry.episode_number">
@@ -220,9 +250,14 @@ const detailKicker = computed(() => {
                 <p v-if="text(entry.overview)" class="detail-copy text-sm">{{ entry.overview }}</p>
               </div>
             </RouterLink>
+            <div class="mb-3 flex flex-wrap gap-2">
+              <LibraryActions :item="episodeRecord(entry)" episode />
+              <RouterLink v-if="sourceFor(episodeRecord(entry))" class="catalogue-page-link" :to="watchLocation(episodeRecord(entry))">Watch episode</RouterLink>
+            </div>
           </li>
         </ol>
       </section>
+      <ConnectedTitles v-if="seriesDetails" :key="data.id" type="tv" :id="data.id" />
     </template>
   </section>
 </template>

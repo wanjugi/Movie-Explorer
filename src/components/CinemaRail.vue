@@ -30,11 +30,20 @@ onMounted(() => {
 onScopeDispose(() => observer?.disconnect())
 
 const request = useRouteRequest(computed(() => ready.value ? props.feed.category : ''), (category, signal) =>
-  props.feed.type === 'tv' ? fetchTvPage(category, {}, signal) : fetchMoviePage(category, {}, { signal }),
+  props.feed.load ? props.feed.load(signal)
+    : props.feed.type === 'tv' ? fetchTvPage(category, {}, signal) : fetchMoviePage(category, {}, { signal }),
 { isEmpty: page => page.results.length === 0 })
 const active = computed(() => props.featuredRequest ?? request)
 const state = computed(() => active.value.state.value)
-const items = computed(() => (state.value.data?.results ?? []).slice(0, props.feed.grid ? 6 : 10))
+const items = computed(() => {
+  if (!props.feed.load) return (state.value.data?.results ?? []).slice(0, props.feed.grid ? 6 : 10)
+  const unique = new Map()
+  for (const item of state.value.data?.results ?? []) {
+    const key = mediaKey(item)
+    if (key && !unique.has(key) && !props.feed.exclude?.includes(key)) unique.set(key, item)
+  }
+  return [...unique.values()].slice(0, 10)
+})
 const previous = ref(false)
 const next = ref(false)
 const canScroll = ref(false)
@@ -75,7 +84,7 @@ function scroll(direction) {
     <div class="shelf-heading">
       <h2>{{ feed.title }}</h2>
       <div class="flex items-center gap-2">
-        <RouterLink :to="{ name: feed.type === 'tv' ? 'tv' : 'movies', query: { category: feed.category } }" class="shelf-link ui-focus"
+        <RouterLink v-if="!feed.load" :to="{ name: feed.type === 'tv' ? 'tv' : 'movies', query: { category: feed.category } }" class="shelf-link ui-focus"
           :aria-label="'View all ' + feed.title">View all <span aria-hidden="true">↗</span></RouterLink>
         <div v-if="!feed.grid" class="shelf-arrows" :class="{ invisible: !canScroll }" :aria-hidden="!canScroll || undefined">
           <button type="button" class="cinema-icon" :disabled="!previous" :aria-label="'Scroll ' + feed.title + ' left'" @click="scroll(-1)">‹</button>

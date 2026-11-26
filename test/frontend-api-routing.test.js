@@ -107,6 +107,12 @@ test('versioned hosting rules target only known deep links and leave API/assets 
     { source: '/tv/:id', destination: '/index.html' },
     { source: '/tv/:id/season/:seasonNumber', destination: '/index.html' },
     { source: '/tv/:id/season/:seasonNumber/episode/:episodeNumber', destination: '/index.html' },
+    { source: '/person/:id', destination: '/index.html' },
+    { source: '/collection/:id', destination: '/index.html' },
+    { source: '/library', destination: '/index.html' },
+    { source: '/calendar', destination: '/index.html' },
+    { source: '/watch/movie/:id', destination: '/index.html' },
+    { source: '/watch/tv/:id/season/:seasonNumber/episode/:episodeNumber', destination: '/index.html' },
   ])
   for (const { source } of config.rewrites) {
     const matcher = new RegExp('^' + source.replace(/:[A-Za-z]+/g, '[^/]+') + '/?$')

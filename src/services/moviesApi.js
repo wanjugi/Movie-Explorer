@@ -4,8 +4,8 @@ const isId = value => Number.isInteger(value) && value > 0 && value <= 2_147_483
 const hasName = item => isId(item?.id) && typeof item.name === 'string'
 const isMovie = item => isId(item?.id) && typeof item.title === 'string'
   && (item.poster_path === null || typeof item.poster_path === 'string')
-const isDetails = item => isMovie(item) && Number.isFinite(item.vote_average)
-  && Array.isArray(item.credits?.cast) && item.credits.cast.every(hasName)
+const isDetails = item => isMovie(item) && (item.vote_average == null || Number.isFinite(item.vote_average))
+  && (item.credits == null || (Array.isArray(item.credits.cast) && item.credits.cast.every(hasName)))
 
 const messages = {
   network: 'Could not connect. Check your connection and try again.',

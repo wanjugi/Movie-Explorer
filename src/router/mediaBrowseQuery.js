@@ -36,7 +36,7 @@ export function readGlobalSearchQuery(query = {}) {
   const q = normalizeMovieSearch(query.q)
   const state = {}
   if (q) state.q = q
-  if (query.type === 'movie' || query.type === 'tv') state.type = query.type
+  if (['movie', 'tv', 'people'].includes(query.type)) state.type = query.type
   if (q && parseMoviePage(query.page) > 1) state.page = query.page
   return state
 }

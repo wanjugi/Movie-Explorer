@@ -10,6 +10,7 @@ defineProps({
   poster: String,
   still: String,
   landscape: Boolean,
+  portrait: Boolean,
 })
 </script>
 
@@ -17,7 +18,7 @@ defineProps({
   <div class="detail-hero breakout on-art" :class="{ 'detail-hero--still': landscape }">
     <CinemaArtwork :path="backdrop || still" :still="!backdrop && landscape" priority />
     <div class="content-frame detail-hero__grid">
-      <MediaPoster :path="landscape ? still : poster" :title="title" :landscape="landscape" :detail-still="landscape"
+      <MediaPoster :path="landscape ? still : poster" :title="title" :landscape="landscape" :detail-still="landscape" :portrait="portrait"
         :sizes="landscape ? '(min-width: 600px) 48vw, 100vw' : '(min-width: 600px) 240px, 160px'" eager />
       <div class="min-w-0">
         <p class="cinema-kicker"><span></span> {{ kicker }}</p>

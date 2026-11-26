@@ -15,11 +15,15 @@ Proposals in the design and architecture references require a later authorized t
 
 ## Git and deployment ownership
 
+The v1.0.0 maintenance baseline keeps the current deployment workflow. Phase 9B dynamic streaming-provider integration was skipped. Use only documented, approved playback sources and check them separately from the automated build.
+
 The project owner exclusively manages Git operations unless they explicitly authorize the specific operation in the current task. This restriction applies to read and write operations, direct commands, tools and scripts that invoke Git. It includes `git status`, `git diff`, `git add`, `git commit`, `git push`, `git pull`, `git checkout`, `git switch`, `git merge`, `git rebase`, `git reset`, and branch creation or deletion.
 
 Use direct filesystem inspection for file checks within scope. Automatic deployment is prohibited. The existing `npm run deploy` script publishes and must never be used as a verification step. After implementation, list changed files and provide any relevant suggested Git commands as text for the owner to run.
 
 ## Design and accessibility
+
+- The Phase 8B design is permanently frozen. Preserve the existing palettes, visual tokens, typography, homepage, navigation, spacing, breakpoints, artwork, posters, rails, animations, detail composition, and player appearance. Any visual redesign requires explicit owner approval. New features must inherit the established components and styles.
 
 - Follow [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md). Preserve the green and navy visual identity, poster-focused discovery, and existing visual hierarchy.
 - Reuse card, layout and interaction patterns across movies and TV where appropriate. Make visual changes only within the approved task.

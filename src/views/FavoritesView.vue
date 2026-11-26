@@ -25,6 +25,7 @@ async function restoreFavoriteFocus(index, event) {
   <section aria-labelledby="favorites-heading">
     <h1 id="favorites-heading" ref="heading" tabindex="-1" class="section-heading ui-focus">Your Favorites</h1>
     <p class="section-intro">The movies and series you’ve saved, all in one place.</p>
+    <RouterLink :to="{ name: 'library' }" class="catalogue-page-link mb-3">Open Library</RouterLink>
     <nav aria-label="Favorite media types" class="catalogue-categories">
       <RouterLink v-for="[key, label] in [['', 'All favorites'], ['movie', 'Movies'], ['tv', 'TV Series']]" :key="key"
         :to="{ name: 'favorites', query: key ? { type: key } : {} }"

@@ -1,6 +1,25 @@
 # MovieExplorer
 
-MovieExplorer is a Vue 3 single-page app for discovering movies and TV series, browsing seasons and episodes, searching titles and saving browser-local favorites. See [architecture](ARCHITECTURE.md), the [current visual baseline](DESIGN_SYSTEM.md) and the [repository instructions](AGENTS.md).
+MovieExplorer is a cinematic Vue 3 application for discovering movies and TV series, exploring seasons and episodes, and keeping a personal Library. It combines Vite, Vue Router, Pinia, Tailwind CSS 3 and two same-origin Vercel Functions that request metadata from TMDB.
+
+[Live site](https://movie-explorer-nine-gilt.vercel.app/) · [Architecture](ARCHITECTURE.md) · [Design system](DESIGN_SYSTEM.md) · [Changelog](CHANGELOG.md)
+
+## Features
+
+- Explore People search, cast and crew profiles, filmographies, collections, related titles, and a release calendar.
+- Check country-specific JustWatch availability through TMDB. Kenya is the default, and the country can be changed locally.
+- Open the Library from Favorites to access Watchlist, Recently Viewed, Watched, Continue Watching and optional seed-based recommendations. Library records and Favorites are stored separately in the browser.
+- Watch specifically approved full-length works through YouTube. [Playback sources](PLAYBACK_SOURCES.md) identifies the exact film and episode, creator and source. Trailer playback and external availability have separate controls. Full-title playback depends on the provider's embedding, network and regional restrictions.
+
+The v1.0.0 release is prepared locally. The owner-confirmed production baseline remains Phase 8B. Phase 9B dynamic streaming integration was deliberately skipped.
+
+## Release and maintenance
+
+Use `npm.cmd run verify` before an owner-managed release. After deployment, run `powershell -NoProfile -File .\scripts\verify-production.ps1` from the repository root. It issues read-only HTTP checks for SPA routes, static assets, and API operations. Verify browser behavior and actual video playback separately.
+
+The browser stores Favorites, Library, and preferences locally. The app uses TMDB metadata and artwork, regional JustWatch availability through TMDB, and YouTube playback for trailers and selected titles. Server handlers validate inputs and keep `TMDB_API_KEY` private. The public metadata API does not implement a global rate limiter.
+
+For maintenance, use the lockfile with `npm.cmd ci`, run both npm audit variants, and repeat verification after changes. If TMDB requests fail consistently, check the server-only key and TMDB status. If an embed fails, check the authorized source and provider status. The app uses client-side routing. Social previews share the static site description because crawlers may skip JavaScript.
 
 ## Local setup on Windows
 
@@ -81,7 +100,7 @@ Phases 5–8 are implemented locally and await owner deployment. The production 
 - Open a movie and TV title. From the TV season gallery follow a season and an episode. Verify parent links, actual adjacent numbering and missing-artwork fallbacks. Try the new cards and collection controls with keyboard focus and system reduced motion enabled.
 - Test Favorites using a separate browser profile or synthetic data. The legacy and v2 storage contracts are unchanged.
 
-See [the Phase 8 design baseline](DESIGN_SYSTEM.md) for palette, components, responsive behavior and motion. Broader Phase 4C, 4D and 4E remain deferred. Phase 9 advanced discovery and Phase 10 final verification and deployment remain future work.
+See [the Phase 8 design baseline](DESIGN_SYSTEM.md) for palette, components, responsive behavior and motion. Broader Phase 4C, 4D and 4E remain deferred. Phase 10 covers final verification and deployment.
 
 ## Phase 5 visual acceptance
 
@@ -216,4 +235,4 @@ try {
 
 ## API operations
 
-`GET /api/movies` supports Discover, title search, genres, Popular, Trending, Top Rated, Now Playing, Upcoming, details and videos. `GET /api/tv` supports its series catalogue, combined search, series/season/episode metadata and videos. Use `?operation=videos&id=550` on the applicable endpoint for validated YouTube choices. Requests use a fixed upstream, time out after eight seconds, and return safe JSON errors with `Cache-Control: no-store`. See [architecture](ARCHITECTURE.md#phase-8b-theme-and-trailer-boundaries) for the trailer contract.
+`GET /api/movies` supports Discover, title search, genres, Popular, Trending, Top Rated, Now Playing, Upcoming, details, videos, people and collections. `GET /api/tv` supports its series catalogue, combined search, series, season and episode metadata, and videos. Both endpoints also serve recommendations, similar titles, watch-provider availability and calendar results. Requests use a fixed upstream, time out after eight seconds, and return safe JSON errors with `Cache-Control: no-store`. The [production check](scripts/verify-production.ps1) documents parameter examples.
