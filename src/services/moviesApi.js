@@ -1,37 +1,101 @@
-async function requestMovies(operation, parameters, field) {
+const isId = value => Number.isInteger(value) && value > 0 && value <= 2_147_483_647
+const hasName = item => isId(item?.id) && typeof item.name === 'string'
+const isMovie = item => isId(item?.id) && typeof item.title === 'string'
+  && (item.poster_path === null || typeof item.poster_path === 'string')
+const isDetails = item => isMovie(item) && Number.isFinite(item.vote_average)
+  && Array.isArray(item.credits?.cast) && item.credits.cast.every(hasName)
+
+const messages = {
+  network: 'Could not connect. Check your connection and try again.',
+  unavailable: 'Movie data is temporarily unavailable. Please try again.',
+  timeout: 'The movie request timed out. Please try again.',
+  'rate-limit': 'Too many requests. Please wait before trying again.',
+  invalid: 'The request was not accepted. Change your search or filters and try again.',
+  missing: 'This movie could not be found.',
+  malformed: 'The movie service returned an unreadable response. Please try again.',
+}
+
+export class MovieApiError extends Error {
+  constructor(kind, status = null, retryAt = null) {
+    super(messages[kind])
+    this.name = 'MovieApiError'
+    this.kind = kind
+    this.status = status
+    this.retryAt = retryAt
+    this.retryable = kind !== 'invalid' && kind !== 'missing'
+  }
+}
+
+function readRetryAfter(value) {
+  if (!value) return null
+  if (/^\d{1,9}$/.test(value)) return Date.now() + Number(value) * 1000
+  const date = new Date(value)
+  return Number.isFinite(date.getTime()) && date.toUTCString() === value ? date.getTime() : null
+}
+
+function errorForResponse(response) {
+  const { status, headers } = response
+  if (status === 429 || status === 503) {
+    return new MovieApiError(status === 429 ? 'rate-limit' : 'unavailable', status,
+      readRetryAfter(headers.get('retry-after')))
+  }
+  if (status === 504 || status === 408) return new MovieApiError('timeout', status)
+  if (status === 404) return new MovieApiError('missing', status)
+  return new MovieApiError(status >= 400 && status < 500 ? 'invalid' : 'unavailable', status)
+}
+
+async function requestMovies(operation, parameters, field, validate, { signal, throwOnError = false } = {}) {
   const query = new URLSearchParams({ operation, ...parameters })
   const fallback = field ? [] : null
 
   try {
-    const response = await fetch(`/api/movies?${query}`)
-    if (!response.ok) return fallback
+    signal?.throwIfAborted()
+    let response
+    try {
+      response = await fetch('/api/movies?' + query, { signal })
+    } catch (error) {
+      if (signal?.aborted || error?.name === 'AbortError') throw error
+      throw new MovieApiError('network')
+    }
+    if (!response.ok) throw errorForResponse(response)
 
-    const data = await response.json()
-    return field ? data[field] : data
-  } catch {
+    let data
+    try {
+      data = await response.json()
+    } catch (error) {
+      if (signal?.aborted || error?.name === 'AbortError') throw error
+      throw new MovieApiError('malformed', response.status)
+    }
+    signal?.throwIfAborted()
+    const value = field ? data?.[field] : data
+    const valid = field ? Array.isArray(value) && value.every(validate) : validate(value)
+    if (!valid) throw new MovieApiError('malformed', response.status)
+    return value
+  } catch (error) {
+    if (throwOnError || signal?.aborted || error?.name === 'AbortError') throw error
     return fallback
   }
 }
 
-export function fetchPopularMovies() {
-  return requestMovies('popular', {}, 'results')
+export function fetchPopularMovies(options) {
+  return requestMovies('popular', {}, 'results', isMovie, options)
 }
 
-export function fetchMovieById(movieId) {
-  return requestMovies('details', { id: movieId })
+export function fetchMovieById(movieId, options) {
+  return requestMovies('details', { id: movieId }, null, isDetails, options)
 }
 
-export function searchMovies(query) {
-  return requestMovies('search', { query }, 'results')
+export function searchMovies(query, options) {
+  return requestMovies('search', { query }, 'results', isMovie, options)
 }
 
-export function discoverMovies(filters) {
+export function discoverMovies(filters, options) {
   const parameters = {}
   if (filters.genre) parameters.genre = filters.genre
   if (filters.year) parameters.year = filters.year
-  return requestMovies('discover', parameters, 'results')
+  return requestMovies('discover', parameters, 'results', isMovie, options)
 }
 
-export function fetchGenres() {
-  return requestMovies('genres', {}, 'genres')
+export function fetchGenres(options) {
+  return requestMovies('genres', {}, 'genres', hasName, options)
 }

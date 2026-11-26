@@ -1,6 +1,6 @@
 # MovieExplorer architecture
 
-**Baseline version 3 · 2026-11-26 · Movie-only application after Phase 3C maintenance**
+**Baseline version 4 · 2026-11-26 · Movie-only application after Phase 4A/4B**
 
 This reference describes the local source. Production observations distinguish previous audit results and owner-confirmed Phase 3D verification. Future architecture is recorded separately below. See [Design system](DESIGN_SYSTEM.md) for visual specifications and [Agent instructions](AGENTS.md) for workflow and preservation rules.
 
@@ -63,6 +63,8 @@ Generated output, dependencies, and repository internals are omitted.
 │  └─ vite-movie-api.js
 ├─ test/
 │  ├─ frontend-api-routing.test.js
+│  ├─ latest-request.test.js
+│  ├─ movie-browse.test.js
 │  ├─ movies-api.test.js
 │  └─ vite-api.test.js
 ├─ public/favicon.ico
@@ -74,11 +76,10 @@ Generated output, dependencies, and repository internals are omitted.
    │  ├─ AppFooter.vue
    │  ├─ AppHeader.vue
    │  └─ MovieCard.vue
-   ├─ router/index.js
+   ├─ composables/{useLatestRequest,useMovieBrowseControls,useMovieBrowseResults}.js
+   ├─ router/{index,movieBrowseQuery}.js
    ├─ services/moviesApi.js
-   ├─ stores/
-   │  ├─ favoritesStore.js
-   │  └─ searchStore.js
+   ├─ stores/favoritesStore.js
    └─ views/
       ├─ FavoritesView.vue
       ├─ HomeView.vue
@@ -92,14 +93,17 @@ Generated output, dependencies, and repository internals are omitted.
 | [src/main.js](src/main.js) | Creates the Vue app, imports CSS, installs Pinia then router, and mounts to `#app`. |
 | [src/App.vue](src/App.vue) | Shared header, routed main area and footer. Imports the shell components. |
 | [src/assets/main.css](src/assets/main.css) | Tailwind base, components and utilities. Imported once in `main.js`. |
-| [src/components/AppHeader.vue](src/components/AppHeader.vue) | Persistent navigation and search query input. Uses RouterLink and the search store. |
+| [src/components/AppHeader.vue](src/components/AppHeader.vue) | Persistent navigation and search form. Edits a local draft and commits through Vue Router. |
 | [src/components/AppFooter.vue](src/components/AppFooter.vue) | Static author, technology and TMDB credits. |
 | [src/components/MovieCard.vue](src/components/MovieCard.vue) | Reused by Home and Favorites. Requires a `movie` object prop, links to details and calls favorites actions. |
 | [src/router/index.js](src/router/index.js) | Route definitions and HTML5 history. Used by bootstrap. |
-| [src/services/moviesApi.js](src/services/moviesApi.js) | Same-origin Fetch wrappers for the movie function. Retains the arrays/object and empty/null contracts and the unused Popular helper. |
-| [src/stores/searchStore.js](src/stores/searchStore.js) | Shared in-memory query. Header writes and Home reads. |
+| [src/services/moviesApi.js](src/services/moviesApi.js) | Same-origin Fetch wrappers for the movie function. Returns validated arrays or a detail object. Supports opt-in normalized errors and cancellation, and retains default empty/null fallbacks. |
+| [src/router/movieBrowseQuery.js](src/router/movieBrowseQuery.js) | Normalizes the three supported query keys and writes canonical Home URLs without equivalent navigation. |
+| [src/composables/useMovieBrowseControls.js](src/composables/useMovieBrowseControls.js) | Owns temporary search/year drafts, debounce and navigation events. |
+| [src/composables/useMovieBrowseResults.js](src/composables/useMovieBrowseResults.js) | Connects effective Home route state to separate movie and genre requests. |
+| [src/composables/useLatestRequest.js](src/composables/useLatestRequest.js) | Owns cancellation, response ownership, state transitions and manual retry gating. |
 | [src/stores/favoritesStore.js](src/stores/favoritesStore.js) | Shared snapshots and localStorage persistence. Used by MovieCard and FavoritesView. |
-| [src/views/HomeView.vue](src/views/HomeView.vue) | Owns results, genres, filters, and request lifecycle. Renders MovieCard. |
+| [src/views/HomeView.vue](src/views/HomeView.vue) | Displays filters, request states and MovieCard. Uses the browse and request composables. |
 | [src/views/FavoritesView.vue](src/views/FavoritesView.vue) | Lazy route rendering saved snapshots and an empty state. Renders MovieCard. |
 | [src/views/MovieDetailView.vue](src/views/MovieDetailView.vue) | Fetches details and appended credits for the ID captured on mount. Displays details and history Back. |
 | [src/views/testView.vue](src/views/testView.vue) | Unrouted detail prototype. It has no test runner or assertions. |
@@ -118,10 +122,10 @@ Generated output, dependencies, and repository internals are omitted.
 
 ```text
 index.html -> main.js (CSS + Vue + Pinia + Router) -> App.vue
-  persistent AppHeader -> Pinia searchQuery ----+
-  main -> RouterView                           |
-    HomeView <---------------------------------+
-      local filters -> moviesApi -> /api/movies -> TMDB Discover / Search / Genres
+  persistent AppHeader -> debounced draft -> router query
+  main -> RouterView                         |
+    HomeView <-------------------------------+
+      filters -> router query -> latest request -> moviesApi -> /api/movies -> TMDB
       results -> MovieCard -> image CDN / movie route / Pinia favorites
     FavoritesView (lazy) <- Pinia favorites <-> localStorage favoritesList
       snapshots -> MovieCard
@@ -131,13 +135,13 @@ index.html -> main.js (CSS + Vue + Pinia + Router) -> App.vue
 ```
 
 1. The index document loads the module entry. The bootstrap installs plugins before mounting to `#app`.
-2. The shell renders the header and footer around the route outlet. The header's `v-model` updates the Pinia query.
-3. Home's immediate `watchEffect` starts Discover on a fresh load. A nonempty query in the running SPA makes it start Search instead. The genre request starts separately on mount and does not block cards.
-4. A list response replaces the current `movies` ref. The view renders every returned entry as a MovieCard keyed by movie ID. Card images are then fetched directly by the browser.
+2. The shell renders the header and footer around the route outlet. The header synchronizes its input draft with the active route and commits valid searches through Vue Router.
+3. Home's effective request key starts Discover for a blank query and Search for a valid title. Genres load separately in discovery and never gate movie results.
+4. Only the active request may publish results or errors. Home renders returned results as MovieCards keyed by ID. Card images are fetched directly by the browser.
 5. The favorites store initializes from local storage when first consumed. Every card reads shared membership and calls the store directly. Favorites renders the same card from a stored snapshot.
 6. Details fetches independently using the mounted route ID. It does not reuse Home or Favorites objects or its own previous responses.
 
-The app has no custom composables, component event declarations, shared request cache, or normalized entity store. Vue props, Pinia, route state, and native DOM handlers are the communication boundaries. Search state is shared, but the results and filters live only in Home.
+The route is the source of truth for committed search and filters. Pinia retains favorites only. The header draft and year draft represent uncommitted text. Request state is scoped to Home. There is no shared request cache or normalized entity store.
 
 ## Routes and navigation
 
@@ -145,11 +149,19 @@ The app has no custom composables, component event declarations, shared request 
 
 | Path | Route name | View | Loading and input |
 |---|---|---|---|
-| `/` | `home` | HomeView | Eager. No route input. |
+| `/` | `home` | HomeView | Eager. Reads optional `q`, `genre`, and `year`. |
 | `/favorites` | `favorites` | FavoritesView | Lazy dynamic import. |
 | `/movie/:id` | `movie-details` | MovieDetailView | Eager. Required ID without numeric validation. |
 
-The Home link and wordmark target Home. Favorites targets its named route. The card Details anchor passes `movie.id`. Search is visible globally but does not navigate. Only Home fetches search results. There are no route guards, search/filter query parameters, custom scroll restoration, catch-all, or nested routes. Browser Back/Forward changes routes without reconstructing Home's filter state. Pinia query survives in-app route changes but is reset by a new application instance. Detail Back delegates to browser history and is shown once details load. Same-component route ID changes can retain an older movie because the ID is captured once and there is no watcher. Direct navigation and new-tab behavior also depend on the server fallback described under deployment.
+The brand and Home links target unfiltered Home. Favorites and Details keep their existing paths. The header is global and sends a valid committed title from any app route to `/?q=...`. Details retains its history Back control and mount-only request. Same-component changes in the detail ID can still retain an older movie, which is deferred to Phase 4C.
+
+### URL, input and history policy
+
+- `q` is the trimmed title, limited to 160 Unicode code points without control characters. `genre` is a canonical positive integer up to 2,147,483,647. `year` is an integer string from 1000 through 9999. Vue Router encodes the URL and the Fetch service separately serializes allowed API parameters.
+- Invalid values, duplicate query fields and unknown fields are ignored for requests. New URLs written by the controls contain only the valid nonempty state. A direct malformed URL can stay in the address bar until the user commits a different state.
+- Home-origin searches retain valid `genre` and `year` in the URL as paused discovery filters. They are hidden during search and never sent to the Search endpoint. Clearing `q` restores them, including after refresh. A new search from a different route starts with no paused filters. Back returns to the prior route or filter state.
+- Search debounces at 350 ms. Enter submits immediately. The first search or a different explicit Enter submission pushes history. A later debounced edit of an active search replaces that entry. Clearing active search pushes a discovery entry. Equivalent state causes no navigation or request. Navigation guards and scope disposal cancel pending draft timers.
+- Year uses a numeric keyboard hint on a text field to preserve incomplete drafts without committing them. Four digits in range commit after 350 ms or Enter. Empty clears immediately. Selecting a genre can commit a valid pending year together. Independent filter changes push history.
 
 ## TMDB integration and request behavior
 
@@ -184,19 +196,19 @@ Valid upstream response envelopes are preserved, including list pagination metad
 
 All responses use `Cache-Control: no-store`. Genre lists, Popular and default Discover are candidates for short shared caching after provider requirements and usage are reviewed. Search, filters and details have higher query cardinality. There is no in-memory cache or rate limiter. Validation, one upstream request per operation and the timeout limit work per request. The API remains public, so masking the key does not prevent repeated valid calls or function usage. Consider platform rate limiting and metrics if abuse or cost demands it.
 
-### Existing UI behavior
+### Frontend failures and request lifecycle
 
-Home still runs popularity-sorted Discover for its “Popular Movies” list. Genre and year are passed together when present. The year input can still issue requests for partial input; the server rejects those without contacting TMDB. Genre/search are remote and the filters are ignored while searching. Clearing search reactivates existing filters on the same mount. Navigating away discards Home's local state.
+All five service functions accept optional `{ signal, throwOnError }` as their final argument. Valid responses preserve the previous arrays or detail object. With `throwOnError: true`, network failures, invalid responses, and HTTP errors produce a safe `MovieApiError` with a classification, HTTP status where available, retry eligibility, and a retry deadline where applicable. The client never displays upstream response text. The default still returns `[]` for list failures and `null` for detail failures. A supplied aborted signal is propagated as cancellation even in fallback mode.
 
-Only page 1 is requested. The browser still uses only the result array. Filters and search query different subsets of TMDB, but later pages remain unavailable in the interface. The provider's valid page range is a per-query constraint and not a count of catalogue titles. [TMDB error reference](https://developer.themoviedb.org/docs/errors)
+Home uses the error-aware path. Its request key includes the normalized title in Search or genre and year in Discover. Changes irrelevant to that operation do not request results again. Each new load aborts its predecessor and takes ownership. The ownership check guards both results and errors even if an obsolete response arrives after abort. Route departure and scope teardown cancel active requests. This is browser-side cancellation. The server's existing eight-second upstream deadline still applies.
 
-Home's `isLoading` is assigned but the template checks `movies.length === 0`. Details uses a null test. Empty or failed responses can appear to load indefinitely. Prior cards remain visible during a new list request and older responses can overwrite newer results. The UI still has no debounce, cancellation, independent error presentation or result deduplication.
+Home presents distinct idle, loading, populated success, empty success, and error states. It drops obsolete cards on a new committed request. Empty states offer clearing search or filters when applicable. Genres have a separate lifecycle and manual retry. Retry uses the last active operation and is available only after a retryable failure. Safe `Retry-After` on 429 or 503 disables retry until due. There is no automatic retry or polling. Details keeps its default fallback and existing view behavior until Phase 4C.
 
-Posters continue to use the `https://image.tmdb.org/t/p/w500` prefix and `poster_path`. See [Design system](DESIGN_SYSTEM.md#image-system).
+Movie lists remain first-page only. Discovery remains popularity-ranked. Posters use the existing `https://image.tmdb.org/t/p/w500` prefix and `poster_path`. See [Design system](DESIGN_SYSTEM.md#image-system).
 
 ## Current data contracts
 
-Fields below describe shapes the app receives or reads. The app does not enforce a runtime schema.
+Fields below describe the shapes the app receives or reads. The service validates the fields needed for successful list, genre and detail responses.
 
 | Contract | Current shape and usage |
 |---|---|
@@ -205,8 +217,8 @@ Fields below describe shapes the app receives or reads. The app does not enforce
 | Genres | Array of `{ id, name }` from TMDB. Local Home state starts empty and populates the selector. Detail genre objects are unused. |
 | Credits | Appended `credits` object can contain `cast` and `crew`. The template reads `cast.slice(0, 5)` and actor `id` and `name`. Crew and other cast properties do not render. |
 | Favorites | `favoritesList` in localStorage holds a JSON array of entire movie snapshots passed by MovieCard. Cards use the same title/date/poster fields as Home. There is no schema version, media type, or refresh. |
-| Search state | Pinia `search` store has reactive string `searchQuery`, initially empty, with no actions/getters or persistence. |
-| Home state | Vue refs `movies = []`, `genres = []`, `selectedGenre = ''`, `selectedYear = ''`, and `isLoading = false`. Bound genre values are numeric IDs or empty. Year uses Vue numeric input conversion and may be empty. These refs are recreated on Home remount. |
+| Search and filter state | Home route query contains optional `q`, `genre`, `year`. Draft text stays in the controls until committed. There is no Pinia search store. |
+| Home request state | Independent movie and genre snapshots shaped as `{ status, data, error }`. Active controllers and retry timers belong to the view scope. |
 
 [Favorites store](src/stores/favoritesStore.js) lines 9–47 parses `favoritesList` without a guard. `toggleFavorite(movie)` finds the first strict ID match, adds or removes the snapshot, and serializes the whole array. `checkIsFavorite(movieId)` uses `.some()`. This avoids duplicates for ordinary well-formed movie records. Storage survives refresh and browser reopening on the same origin if available. There is no cross-tab listener, account sync, sessionStorage, IndexedDB, or backend storage. Malformed JSON, unexpected types and storage failures are unhandled.
 
@@ -222,13 +234,13 @@ Numeric IDs are scoped to the media entity. A future movie and series with the s
 - **Routing precedence** Vue Router retains `createWebHistory` and the default root base. [vercel.json](vercel.json) rewrites only `/favorites` and `/movie/:id` to `/index.html`. The root uses the regular index. The rules do not match `/api`, unknown API paths, `/assets`, or `/favicon.ico`. Unknown app paths outside those rules receive the platform 404. Paths matching a movie route receive the SPA document, even if the movie ID is invalid or the API later returns 404. No client-side not-found view was added. [Vercel Vite routing](https://vercel.com/docs/frameworks/frontend/vite)
 - **Known local differences** Vite supplies its own app HTML fallback. The local API middleware intercepts `/api` before it, returning JSON 404 for unrecognized API paths. Vite dev/preview do not execute Vercel rewrite rules. The rewrite config and local HTTP behavior can be tested locally. Vercel packaging and HTTP results need an owner-deployed preview or production instance.
 - **Production history** The original audit found deep-link failures and a public key in the deployed JS. The owner subsequently confirmed Phase 3D passed 12 production checks and a credential scan, and reported the credential matter resolved. The owner manages automatic Vercel deployments from GitHub main.
-- **Unverified in Phase 3C** The new package set has not been deployed as part of this work. Dashboard settings and environment scopes were not inspected. Existing metadata remains sparse and there is no SSR or prerender setup.
+- **Unverified for Phase 4A/4B** No deployment occurred during this work. Dashboard settings and environment scopes were not inspected. Existing metadata remains sparse and there is no SSR or prerender setup.
 
 ### Testing foundation
 
-The 27 built-in Node tests cover mocked upstream requests, validation, safe failures, service contracts and Vercel rewrite scope. The Vite integration test starts the app on an ephemeral loopback port, verifies the three SPA routes and unknown API behavior, mocks a successful upstream call, and checks transformed client modules for synthetic secret markers. It requires no real credentials. See [README.md](README.md#development-commands) for commands.
+The 41 built-in Node tests cover mocked upstream requests, validation, safe failures, service contracts, Vercel rewrite scope, debounced navigation with Vue Router memory history, and request lifecycle behavior. The Vite integration test starts the app on an ephemeral loopback port, verifies the three SPA routes and unknown API behavior, mocks a successful upstream call, and checks transformed client modules for synthetic secret markers. It requires no real credentials. See [README.md](README.md#development-commands) for commands.
 
-For Phase 4, Vitest with Vue Test Utils v2 and a compatible DOM emulator could add component coverage for search, request states, persistence and routes. Select Vitest and DOM versions against both supported Node lines and Vite 7. Current Vitest 5 requires Node 22.12 or newer in its supported lines. Vitest 4 can support Node 20 alongside Vite 7. Browser automation can later verify representative viewports, navigation and keyboard interactions. It adds browser binaries and CI maintenance, so the current phase retains Node tests alone. [Vitest setup](https://vitest.dev/guide/) · [Vue Test Utils v2](https://test-utils.vuejs.org/guide/)
+In later phases, Vitest with Vue Test Utils v2 and a compatible DOM emulator could add component coverage for persistence and resource views. The current phase uses real Vue composables and Vue Router memory history with the Node runner. Select Vitest and DOM versions against both supported Node lines and Vite 7. Current Vitest 5 requires Node 22.12 or newer in its supported lines. Vitest 4 can support Node 20 alongside Vite 7. Browser automation can later verify representative viewports, navigation and keyboard interactions. It adds browser binaries and CI maintenance, so the current phase retains Node tests alone. [Vitest setup](https://vitest.dev/guide/) · [Vue Test Utils v2](https://test-utils.vuejs.org/guide/)
 
 ## Technical debt register
 
@@ -236,14 +248,14 @@ For Phase 4, Vitest with Vue Test Utils v2 and a compatible DOM emulator could a
 |---|---|---|---|
 | T01 | Historical production exposure | Authentication is server-side. Owner reported production credential verification and resolution in Phase 3D. | Current server handler and prior public build |
 | T02 | Historical production defect | Owner verified production deep links in Phase 3D. Phase 3C retains the rewrites and checks route behavior locally. | router lines 6–26 and vercel.json |
-| T03 | Confirmed state defect | Empty and failed lists/details appear to be loading. Genre failures leave the default option alone. | Home lines 21–36,63–68, Detail lines 19–28, moviesApi |
-| T04 | Confirmed UI request race | Parameters are now safely serialized. Overlapping effects can still commit responses out of order. | Home lines 21–36, frontend movie service |
-| T05 | Confirmed navigation limitation | Search is global to edit and Home-only to view. A reused detail route does not fetch a changed ID. | AppHeader lines 25–33, Home lines 21–36, Detail lines 10–20 |
+| T03 | Remaining detail state defect | Home and genres have independent feedback. Detail failures still appear as loading pending Phase 4C. | MovieDetailView, moviesApi |
+| T04 | Resolved for Home | Obsolete list responses can no longer commit. Detail request lifecycle is deferred. | useLatestRequest, useMovieBrowseResults |
+| T05 | Remaining detail navigation limitation | Global search navigates to Home with its URL state. A reused detail route still does not fetch a changed ID. | AppHeader, movieBrowseQuery, MovieDetailView |
 | T06 | Confirmed persistence limitation | Invalid local data or denied writes can fail. Stored snapshots can grow stale. TV ID collisions would arise with numeric-only identity. | favoritesStore lines 14–37 |
-| T07 | Architectural limitation | One page per result, no cache or shared abuse quota, no UI request cancellation or deduplication. | Shared server handler and Home effect |
+| T07 | Architectural limitation | One page per result and no server cache or shared abuse quota. Home cancels obsolete requests and ignores equivalent route changes. | Shared server handler and useMovieBrowseResults |
 | T08 | Maintenance issue | Repeated poster construction, unused Popular wrapper, prototype and unused store import/helper. Legacy GitHub Pages tooling awaits owner confirmation. | MovieCard, MovieDetailView, moviesApi, testView, favoritesStore, package.json |
 | T09 | Partial quality infrastructure | Focused Node API tests exist. Component/browser suites, type/lint/format scripts and local CI remain absent. | test/ and package.json |
-| T10 | Confirmed input/data gaps | Incomplete year edits can fetch. Null or malformed data can break details rating or cast and produce broken image URLs. | Home lines 56–59, Detail lines 33–75, moviesApi |
+| T10 | Confirmed input/data gaps | Incomplete years are held in the draft and key detail fields are validated. Missing posters and optional detail metadata still need explicit presentation. | useMovieBrowseControls, moviesApi, MovieDetailView |
 | T11 | Security hygiene | Private env files are now covered by ignore rules. Existing tracking and history remain unverified. | .gitignore |
 | T12 | Missing features | TV browsing/details, seasons, episodes, mixed search, advanced filters, later list pages, and route metadata are absent. | router, moviesApi, Home and Details |
 | T13 | Unverified runtime risks | Potential breakpoint overflow, browser-specific storage behavior, dependency advisory coverage and live TMDB rate limits were not exercised. | [Design defects](DESIGN_SYSTEM.md#known-visual-defects-and-candidate-fixes), package-lock, platform |
@@ -255,7 +267,7 @@ The following options are pending later implementation phases.
 
 1. **Keep Vue, Vite, Tailwind and Pinia.** Improve the existing layers incrementally. JS can remain viable with runtime validation and checked contracts. Consider JSDoc or TypeScript at media, request and persistence boundaries if complexity warrants it.
 2. **Build on the small movie function.** Verify packaging and rewrites on Vercel after deployment. Consider bounded caching and platform request limits if usage warrants them, and complete the credential cutover.
-3. **Improve the UI request lifecycle.** Build on validated responses and retained pagination metadata. Add cancellation or last-request-wins and independent pending, success, empty and error states. Discover across categories and pages without acquiring the entire catalogue in browser memory.
+3. **Reuse the request lifecycle for future views.** Apply the independent pending, success, empty and error states to Details and later media routes. Add category-specific route keys and paging when authorized.
 4. **Separate summaries from detail contracts.** Shared summaries can provide `mediaType`, source ID, display title/date, poster and rating. Map movie `title` and `release_date` and TV `name` and `first_air_date` intentionally. Keep movie runtime, TV season structures and episode details distinct. Any people search results need their own presentation contract.
 5. **Keep existing movie URLs and share new resource routes.** Preserve `/movie/:id`. Candidate routes include `/tv/:id`, `/tv/:id/season/:seasonNumber` and `/tv/:id/season/:seasonNumber/episode/:episodeNumber`. Validate resource parameters, including valid season zero when applicable. Consider route query state for shareable search, filters and pages.
 6. **Migrate favorites safely.** Introduce composite media identity, preserve existing movie order and useful display data, validate legacy entries and make migration retry-safe. Keep raw legacy data recoverable until a new write succeeds. Add accounts or database infrastructure only when explicitly approved requirements justify it.

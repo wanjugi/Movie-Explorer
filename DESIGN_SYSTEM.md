@@ -1,6 +1,6 @@
 # MovieExplorer design system
 
-**Baseline version 1 · 2026-11-26 · Existing movie-only interface**
+**Baseline version 2 · 2026-11-26 · Existing movie-only interface**
 
 This reference describes the current Vue templates and Tailwind 3 styling. Palette and breakpoints were checked against the existing compiled stylesheet. The wireframes are derived from code. Screenshots and interactive viewport inspection were unavailable for this baseline. See [Architecture](ARCHITECTURE.md) for behavior and [Agent instructions](AGENTS.md) for development rules.
 
@@ -25,7 +25,7 @@ The app uses default Tailwind 3 tokens. [tailwind.config.js](tailwind.config.js)
 | `#4ADE80` | `hover:text-green-400`, Home, Favorites and technology links | Hover text color |
 | `#374151` | `bg-gray-700`, search surface | Favorite hover surface via `hover:bg-gray-700` |
 | `#4B5563` | `bg-gray-600`, genre/year inputs | `text-gray-600` for filter labels, tagline, Back, votes and detail labels |
-| `#9CA3AF` | `text-gray-400`, footer, Home loading, empty Favorites and unselected heart | `placeholder-gray-400` in search and year. Contrast against page grey is about 1.72:1 and against search grey about 4.06:1. |
+| `#9CA3AF` | `text-gray-400`, footer, empty Favorites and unselected heart | `placeholder-gray-400` in search and year. Contrast against page grey is about 1.72:1 and against search grey about 4.06:1. |
 | `#EF4444` | `fill-red-500 stroke-red-500`, selected heart | Unselected heart uses `fill-none` with `stroke="currentColor"` and grey text, turning white on hover |
 | `#EAB308` | `text-yellow-500`, star and rating | About 1.30:1 against the page grey |
 | `#60A5FA` | `text-blue-400`, TMDB credit link | `hover:text-blue-300` uses `#93C5FD` |
@@ -58,7 +58,8 @@ System sans-serif stack from Tailwind Preflight, with no custom font files or re
 | Detail metadata | `text-sm`, labels `font-semibold` | 14 / 20 px | Values 400, labels 600 |
 | Back | `font-semibold text-md` | Inherited 16 / 24 px | 600. Default Tailwind has no `text-md` utility. |
 | Footer | `text-sm` author, inherited technology links, `text-xs` credit | 14 / 20, 16 / 24, and 12 / 16 px | 400 |
-| Home loading and Favorites empty | Inherited base, `text-gray-400` | 16 / 24 px | 400 |
+| Home loading and empty | Inherited base, `text-gray-600` | 16 / 24 px | 400 |
+| Favorites empty | Inherited base, `text-gray-400` | 16 / 24 px | 400 |
 | Detail loading | `text-lg text-center` | 18 / 28 px | 400, inherited navy |
 
 ## Shell, widths and spacing
@@ -86,24 +87,24 @@ The following describes the default state first. Motion and focus shared across 
 
 | Component and source | Structure, layout and behavior | Accessibility and limitations |
 |---|---|---|
-| **AppHeader** · [AppHeader.vue](src/components/AppHeader.vue), lines 10–35 | Navy `header` with shadow wraps a centered padded `nav`. Green MovieExplorer wordmark links Home. Sibling group holds white Home and Favorites links and search. Stack below 768 px, then horizontal with brand and group at opposite ends. Links turn green on hover, with no authored transition or special active appearance. | Native anchors via RouterLink. Persistent header appears even when search cannot display results on the active route. |
+| **AppHeader** · [AppHeader.vue](src/components/AppHeader.vue), lines 10–35 | Navy `header` with shadow wraps a centered padded `nav`. Green MovieExplorer wordmark links Home. Sibling group holds white Home and Favorites links and search. Stack below 768 px, then horizontal with brand and group at opposite ends. Links turn green on hover, with no authored transition or special active appearance. | Native anchors via RouterLink. The search form works on every page and directs results to Home. |
 | **AppFooter** · [AppFooter.vue](src/components/AppFooter.vue), lines 2–29 | Navy centered block. “Made by Ahmed Wanjugi using”, followed by green Vue.js, Tailwind CSS and Pinia links, then “Movie data provided by TMDB.” Technology links stack on smaller widths and form a centered row with commas at 768 px. Tech links lighten green on hover and TMDB turns lighter blue. External links open new tabs. | Semantic footer, native links, no authored special focus effect. Footer follows content, so it can sit high on short pages. |
 | **MovieCard** · [MovieCard.vue](src/components/MovieCard.vue), lines 15–43 | Rounded, clipped, shadowed charcoal panel. Poster first, then flexible padded text with H2 and raw release date, then Details and heart. The body and text region grow to help align actions within a grid row. The entire panel scales and increases shadow on hover. | Card and poster are not links. Individual controls are interactive. No line clamp, fixed media block, or mobile action reflow. |
-| **HomeView** · [HomeView.vue](src/views/HomeView.vue), lines 39–72 | Nested centered main. “Popular Movies” H1 and underline, then genre/year if search is empty. Loading text or a grid follows. Search replaces the same grid and keeps the heading. | Filter labels exist. Heading does not reflect search mode. Loading uses result length, even on failure. |
+| **HomeView** · [HomeView.vue](src/views/HomeView.vue) | Nested centered main with the existing H1 and underline style. Heading reads “Popular Movies” in discovery and “Search results for …” when a title is active. Loading, empty, error or the existing grid follows. | Filter labels, polite status updates, and an alert for request errors. |
 | **FavoritesView** · [FavoritesView.vue](src/views/FavoritesView.vue), lines 8–25 | Nested centered main, “Favourite Movies” H1, then either muted empty copy or shared cards. Grid uses four tracks from 768 px, and removal immediately updates the list. | Native card actions are reused. Empty copy has no CTA or live announcement. |
 | **MovieDetailView** · [MovieDetailView.vue](src/views/MovieDetailView.vue), lines 24–83 | Nested `text-gray-900` main. Centered loading text or a poster and text group. At 768 px poster and text are nominally one-third and two-thirds in a flex row, with normal shrink around the 32 px gap. Below 768 px the poster is above Back, H1, italic tagline, rating, overview and a two-column metadata grid. Cast starts in the next grid row. | Back appears with loaded data. No favorite action, backdrop, detail error panel, or missing-field presentation. |
-| **Search input** · AppHeader lines 25–33 | `type="text"`, placeholder “Search movies...”, muted grey on charcoal, white value, full-width pill on mobile and auto width from 768 px. `v-model` writes query text on input. Green 2 px ring on focus. | Placeholder is the only visible identifier and no persistent label or explicit accessible name is supplied. |
-| **Genre selector** · HomeView lines 45–54 | “Genre” label over native select. “All Genres” is the empty value, with API names displayed and IDs bound. White on grey with 8 px rounding and green border/ring on focus. Full width of wrapper below 640 px, auto width at 640 px. | Native keyboard support and associated label. No indication when the genre request fails. |
-| **Year input** · HomeView lines 56–59 | “Year” above native `type="number"`, placeholder “e.g., 2024”. Shares genre style and responsive width. Uses browser-native increments and sends a truthy value during discovery. | Associated label. Missing completion/range validation can send partial input. |
-| **Section heading** · HomeView lines 40–43 and FavoritesView lines 9–10 | Left-aligned black 30 px H1 with bold weight. Detail H1 is a separate 36 px treatment without divider. | Provides page hierarchy. Search does not rename the section. |
+| **Search input** · AppHeader | Text field in a search form. Retains its dark rounded pill, white value, placeholder and green focus ring. Enter commits immediately and valid typed text commits after 350 ms. A compact green Clear button appears beside nonempty text. | Accessible name “Search movies”. The Clear button has a descriptive name and returns focus to the field when activated. Invalid input is described inline. |
+| **Genre selector** · HomeView | “Genre” label over native select. “All Genres” is the empty value, with API names displayed and IDs bound. White on grey with 8 px rounding and green border/ring on focus. Full width of wrapper below 640 px, auto width at 640 px. | Native keyboard support and associated label. Choices have their own loading and retry feedback. The current genre ID remains visible as a fallback. |
+| **Year input** · HomeView | “Year” above a text input with numeric keyboard hint and placeholder “e.g., 2024”. Retains the genre style and responsive width. A valid four-digit year commits after 350 ms or Enter. Empty clears it. | Associated label and inline range guidance for incomplete or invalid entries. |
+| **Section heading** · HomeView and FavoritesView | Left-aligned black 30 px H1 with bold weight. Detail H1 is a separate 36 px treatment without divider. | The discovery or search heading identifies the current mode. |
 | **Green heading divider** · same H1s | Green 4 px bottom border across the heading box. 8 px padding above the border and 24 px outer gap below. | Decorative CSS border. No standalone child element. |
-| **Movie grid** · HomeView lines 67–68 and FavoritesView lines 16–21 | Equal CSS Grid tracks and 24 px gap. Home 2→5 and Favorites 2→4 at 768 px. Cards fill the assigned tracks. | Reading order follows the array. Fewer cards leave unused tracks. No special handling for very sparse lists. |
+| **Movie grid** · HomeView and FavoritesView | Equal CSS Grid tracks and 24 px gap. Home 2→5 and Favorites 2→4 at 768 px. Cards fill the assigned tracks. | Reading order follows the array. Fewer cards leave unused tracks. No special handling for very sparse lists. |
 | **Poster image** · MovieCard lines 17–18 and MovieDetailView lines 33–35 | Full width of its box and intrinsic height. Card poster is clipped at the rounded top, details poster has rounding and shadow. Alt uses title. | No fixed aspect ratio, placeholder, responsive source, or failure handler. |
 | **Details button** · MovieCard lines 24–28 | Centered green RouterLink styled as a rounded button, `flex-1`, white semibold 14/20 px label and about 36 px tall on one line. Turns darker green on hover. | Native anchor. No custom focus utility. Low contrast on the resting fill and pressure to wrap at narrow widths. |
 | **Favorite button** · MovieCard lines 29–40 | Round approximately 40×40 px button, inline 24×24 px heart, uses selected red fill/stroke and inactive grey outline. Hover adds grey surface, with inactive icon able to turn white. | No explicit accessible name or pressed-state attribute. Focus outline removed. |
 | **Rating presentation** · MovieDetailView lines 52–57 | Aligned row containing literal star, numeric rating to one decimal, “/ 10”, and grey “(N votes)”. 8 px margin after the rating and 16 px below the row. | Text conveys the score without relying on color. The yellow is low-contrast and the formatting assumes a numeric score. |
 | **Back button** · MovieDetailView lines 39–47 | Inline native button using `router.back()`. Grey label and 20×20 px arrow, 8 px icon gap. Hover darkens the text and moves the arrow left 4 px. | Visible “Back” label. Focus outline removed. Browser history determines the destination. |
-| **Loading text** · HomeView lines 63–65 and MovieDetailView lines 25–29 | Home shows left-aligned “Loading movies...” in muted grey. Details shows centered “Loading movie details...” in larger navy text. Both occupy only their text height. | No live status, skeleton, progress or retry. Home conflates empty and failure, and Details conflates failure with loading. |
+| **Loading text** · HomeView and MovieDetailView | Home shows left-aligned “Loading movies…” in grey with a separate genre-loading line if needed. Details keeps its centered, larger “Loading movie details...” treatment. | Home announces loading and marks its results region busy. Skeletons and detail state improvements remain deferred. |
 | **Empty favorites state** · FavoritesView lines 12–14 | “No favorite movies found.” on the light grey page below the usual H1 and border. It replaces the grid. | Low contrast and no announcement. Same short-content footer behavior. |
 
 ## Image system
@@ -214,22 +215,28 @@ DETAIL LOADING (short shell)
 - `MovieCard` uses `transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-2xl`. Scaling does not reflow grid tracks. The elevated card can extend into neighboring space.
 - The heart uses `transition-colors duration-200`. Clicking or keyboard activating it toggles a movie in Pinia and changes fill/stroke. There is no visual keyboard-focus replacement for the removed outline and no pressed-state announcement.
 - The Back arrow uses `transition-transform duration-200 group-hover:-translate-x-1`. Text darkens on hover. Back strips its focus outline.
-- Search has explicit `focus:ring-2 focus:ring-green-500`. Genre/year define green focus borders and ring color. No custom route focus, live result announcements, skip link, or reduced-motion variants exist.
+- Search has explicit `focus:ring-2 focus:ring-green-500`. Genre/year define green focus borders and ring color. Home announces committed request feedback and result counts without moving focus. Clear and retry buttons have visible keyboard focus. Global route focus, skip links and reduced-motion variants remain deferred.
+
+## Phase 4A/4B request feedback
+
+The shell, poster cards, grid columns, and footer retain their existing design. Home keeps the green divider and removes obsolete cards while a new request loads. Empty search shows “No movies matched your search” and a Clear search action. Empty filtered discovery offers Clear filters. Errors show safe text and a Retry movies button for retryable failures. Retry stays disabled during a server-provided wait. Genre loading and failure stay beside the genre selector while movie cards remain independent.
+
+Home uses a polite status region for committed loading, empty and result counts. Errors use an alert. The results wrapper reports whether it is busy. Search validation and year guidance are associated with their fields. Table and wireframe proportions continue to describe the established layout. See [Architecture](ARCHITECTURE.md#url-input-and-history-policy) for timing, state and history.
 
 ## Known visual defects and candidate fixes
 
 | Status and issue | Source and cause | Proposed improvement |
 |---|---|---|
-| Confirmed source cause · footer sits high while loading or empty | App.vue lines 9–16 uses a viewport-minimum flex column without growing main. HomeView lines 63–68 initially renders one line. | Give the shell main flex growth and keep footer in flow. |
+| Confirmed source cause · footer sits high while loading or empty | App.vue lines 9–16 uses a viewport-minimum flex column without growing main. HomeView initially renders short loading feedback. | Give the shell main flex growth and keep footer in flow. |
 | Confirmed · nested containers and landmarks | App.vue line 12 and each routed view start with `main.container.mx-auto.p-4`. | Use one main landmark and one owner for page padding. |
-| Confirmed absence · loading grid and reserved poster dimensions | HomeView lines 63–68, MovieCard lines 17–18, Detail lines 27–35. | Approved skeletons and stable media slots can reduce layout shift. |
-| Confirmed source difference · card widths | HomeView line 67 is five columns at `md`, FavoritesView line 16 is four. | Evaluate one responsive grid across both pages. |
-| Suspected visual impact · tablet density and narrow overflow | HomeView line 67, App.vue line 12 and MovieCard lines 19–35 combine five tracks at 768 px with nested padding and minimum action widths. | Inspect common widths, then tune track progression and action layout. |
+| Confirmed absence · loading grid and reserved poster dimensions | HomeView loading region, MovieCard lines 17–18, Detail lines 27–35. | Approved skeletons and stable media slots can reduce layout shift. |
+| Confirmed source difference · card widths | HomeView results grid is five columns at `md`, FavoritesView line 16 is four. | Evaluate one responsive grid across both pages. |
+| Suspected visual impact · tablet density and narrow overflow | HomeView results grid, App.vue line 12 and MovieCard lines 19–35 combine five tracks at 768 px with nested padding and minimum action widths. | Inspect common widths, then tune track progression and action layout. |
 | Suspected visual impact · long titles and mixed poster heights | MovieCard lines 17–24 allow natural wrapping and auto image height. | Measure long-title fixtures, then consider stable poster slots and consistent text space. |
 | Confirmed scale rule · nearby overlap is unverified | MovieCard line 16 scales 105% in place without reallocating tracks. | Assess a restrained hover effect and reduced-motion behavior. |
 | Confirmed absence · missing image treatment | MovieCard lines 17–18 and Detail lines 33–35 directly concatenate poster paths. | Handle absent paths and load failures with a defined placeholder. |
-| Confirmed · unclear request feedback | HomeView lines 21–36 and 63–68, Detail lines 19–28, FavoritesView lines 12–14. | Give initial loading, refresh, empty and error independent UI and accessible announcements. |
-| Confirmed · contrast, labels, and focus | Palette above. AppHeader lines 25–33, MovieCard lines 25–39, HomeView lines 63–64, FavoritesView lines 12–13 and Detail lines 39–55. | Keep the hue identity while improving contrast, control names, state, focus and motion. |
+| Remaining · detail request feedback | MovieDetailView still uses one loading line for pending and failed detail requests. | Give detail loading and failure independent states in Phase 4C. |
+| Confirmed · contrast, labels, and focus | Palette above. MovieCard lines 25–39, FavoritesView lines 12–13 and Detail lines 39–55. | Keep the hue identity while improving contrast, control names, state, focus and motion. |
 
 ## Proposed direction and decisions awaiting approval
 
@@ -255,3 +262,4 @@ Homepage composition, background treatment, navigation hierarchy, grid progressi
 | Date | Decision | Rationale |
 |---|---|---|
 | 2026-11-26 | Recorded the movie-only design baseline | Preserve the existing identity and make future proposals distinguishable from shipped behavior. |
+| 2026-11-26 | Added functional search and request feedback | Keep the existing palette and layout while making current search, filters and failure states clear. |

@@ -50,6 +50,18 @@ Open the localhost URL Vite prints. If `.env.local` already defines `TMDB_API_KE
 
 Tests and build require no TMDB key. The integration test uses an ephemeral loopback port and synthetic values. Vite preview uses its own routing, so verify Vercel rewrites on a deployment during the owner-managed release.
 
+## Movie search and filter verification
+
+Use the [private-file PowerShell workflow above](#local-setup-on-windows) to run Vite. The global search field accepts Enter or commits a valid draft after 350 ms. Search from Home, Favorites or a movie detail page and confirm the address changes to `/?q=...`. Reopening that URL restores the result query. Validate punctuation and Unicode with a title such as `A & B + 雨`.
+
+- Open `/?genre=28&year=2025` directly. Confirm both controls and the first-page discovery result request reflect the URL. A partial year such as `20` shows guidance and leaves the last committed year active. A valid year commits after 350 ms or Enter. Deleting the year clears it.
+- Search from that filtered Home state, refresh, then select Clear. Genre and year return because the search URL retained them as paused filters. A new search from another page starts with no paused filters. Check browser Back and Forward, and confirm Enter on an already committed query does not add history or repeat a request.
+- In DevTools, use network throttling and submit two different searches. Check that only the newer result remains even if the older response finishes later. While a request is pending, Home shows loading text. Try a title with no matches and use Clear search from the empty state.
+- To exercise failure locally, switch the browser offline after loading the app, enter a different search, then restore the connection and select Retry movies. The retry should keep the same query. If genre loading fails independently, discovery should still render movies and Retry genres should be available.
+- Open `/movie/550` and confirm details/credits. Add and remove a favorite on the same local origin and refresh Favorites. Use keyboard Tab and Enter to check the search form, Clear, retry and focus styling.
+
+`npm.cmd test` runs the API, real Vue Router memory-history, debounce, request ownership, retry and Vite integration tests. The timing tests use Node's built-in mock timers. Live TMDB is only needed for the optional manual checks above.
+
 ## Dependency maintenance
 
 Phase 3C removed unused Axios and both unused Tailwind 4 adapters. The app stays on Vue 3.5, Vite 7, Tailwind 3, and PostCSS 8. Compatible security updates and the browser data refresh cleared the npm audit findings and stale compatibility warnings at verification time. See [the dependency record](ARCHITECTURE.md#phase-3c-dependency-maintenance) for versions and decisions.
