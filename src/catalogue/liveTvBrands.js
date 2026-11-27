@@ -1,0 +1,22 @@
+// Public channel avatars are served by YouTube. The source register records provenance.
+export const liveTvBrands = Object.freeze({
+  'ktn-home': ['UCKVsdeoHExltrWMuK0hOWmg', 'https://yt3.googleusercontent.com/_mzOQ0PLJxAi8imGLd7sICwGcIN5sDxisZgMftoM4FW0_UuRRGHGCmcWhv8cqPqPcVQcpVKh=s240-c-k-c0x00ffffff-no-rj'],
+  'tv47': ['UC_zA9UIWE1fB-jfFk_DBSYw', 'https://yt3.googleusercontent.com/f-VHwTo8tlpmtZMJ4DOciWdcq9skkl2fDzn607b8e90tdGv4pupJh5YzXSD94n8czr6i9Mhs=s240-c-k-c0x00ffffff-no-rj'],
+  'citizen-tv': ['UChBQgieUidXV1CmDxSdRm3g', 'https://yt3.googleusercontent.com/wj5XPSPtxg2oy9kdzdfRFRtyebgfB5mirkM8QmLR0TFqdzxga7iSWImBZo0DyQQ16zUvmDHr=s240-c-k-c0x00ffffff-no-rj'],
+  'hope-tv': ['UClJq8G6FjEeXyMH6UgimnLw', 'https://yt3.googleusercontent.com/ytc/AIdro_muNJ7Z3spiWMr_tfaeutbtulc3DjEAdoiKH_JFZoMDPw=s240-c-k-c0x00ffffff-no-rj'],
+  'ntv-kenya': ['UCqBJ47FjJcl61fmSbcadAVg', 'https://yt3.googleusercontent.com/BXqMO9VfeJGnU-D-0jdB-jVrbYXqFN4QX0ipmbF2QNKdy5nH6QZ3Sc4n0KIsOxbdXuTwGdGWfw=s240-c-k-c0x00ffffff-no-rj'],
+  'kbc-channel-1': ['UCypNjM5hP1qcUqQZe57jNfg', 'https://yt3.googleusercontent.com/1fX-2HVqG-T8AaWdFKOJQ_L_JRupPb0ggP3ZrGqAq1i3CYry-vznzX9lbbg5zl0o2gCGzlYkQs8=s240-c-k-c0x00ffffff-no-rj'],
+  'k24': ['UCt3SE-Mvs3WwP7UW-PiFdqQ', 'https://yt3.googleusercontent.com/CnPgPD_was9jSpyXOE3IEuuEtBAhyebPtXFoFb0WaIc3mrZSwT8snPU5yQtueoGpFDtTM-7U9A=s240-c-k-c0x00ffffff-no-rj'],
+  'y254': ['UCyN7zreAYtk9mRmuCw4ZzHA', 'https://yt3.googleusercontent.com/ytc/AIdro_llGSBGUTsgIfqBdPb_ZwdY80mMqdvCdf9P2Fd-Pvb5_4E=s240-c-k-c0x00ffffff-no-rj'],
+  'switch-tv': ['UC0q3EANEBvxnwmLtMbd_D9g', 'https://yt3.googleusercontent.com/jY2pgGSChp70616LlCdwvAnSjC5BDTbgHvc2eEL79vSk44Mp_5u1YSg2wO_AwB4Np4jyz46r0g=s240-c-k-c0x00ffffff-no-rj'],
+  'cnn-international': ['UC_op9xp_0gSn8B41PZacytg', 'https://yt3.googleusercontent.com/ytc/AIdro_lyJwDDDmoygXq7XEDSr-b3o7f49aX2gDxL0wIDOECP=s240-c-k-c0x00ffffff-no-rj'],
+  'inooro-tv': ['UCZlNMLTVNxzwB0axilK-rDw', 'https://yt3.googleusercontent.com/-7KyJe8abxH2UV5egD5fd9VNT2BI-nHnJJT9JCVcSrzJeIcD2DrkSaBt4waEzlXByeazYqUBXHU=s240-c-k-c0x00ffffff-no-rj'],
+  'ramogi-tv': ['UCE0YXdRyT9WC96KZfn7C9mQ', 'https://yt3.googleusercontent.com/HSL1oHiA2RKv-VI1fpDbJ0ukptFS6xfnjydu-Mz8cXZizMKGD5nSKZ6k-BxnXL7qNB7ceB6Up8g=s240-c-k-c0x00ffffff-no-rj'],
+  'kameme-tv': ['UCd9nkc2XA77NMxBvQz35I2Q', 'https://yt3.googleusercontent.com/zhdsL8LqidZPlRfEixfrNKosMYBWW3QLNkA8KLYx6rI0jsCa5NpmpApMayPgNHZi-oOhpyOOUzg=s240-c-k-c0x00ffffff-no-rj'],
+  'kass-tv': ['UC45o8sYJCfkY79LBNDHUHPg', 'https://yt3.googleusercontent.com/6mNsjniKbNENOrHwzH-WIU8UdpFd9EU0qTxQIfTf5C1VlXdJWJxMQQzVtJE27yyNbnFTplT8=s240-c-k-c0x00ffffff-no-rj'],
+  'family-tv': ['UCaezQJtBqkyuNFN8bGmBeMQ', 'https://yt3.googleusercontent.com/nDbq7U9gsuqVhIBwfBcxgrYxs-eLsVfO-MVi-3lJrUt4iqlHWEfJeildJAld6m83gmk_UmgY=s240-c-k-c0x00ffffff-no-rj'],
+  'al-jazeera-english': ['UCNye-wNBqNL5ZzHSJj3l8Bg', 'https://yt3.googleusercontent.com/XsTga3Nsfc1E6ZgC6HfHfzTG_3zhuZleOnsKxSK2aILMjwkkIm-0vdALFaU-yt0Lw07iLtbSifk=s240-c-k-c0x00ffffff-no-rj'],
+  'bbc-news': ['UC16niRr50-MSBwiO3YDb3RA', 'https://yt3.googleusercontent.com/v4JamQ9B-PUiJHjmZQs9UwTaoLQW8vijJMMpV5QvA2wHQ6iwWM8Q1s6O4jgTl0dtDigVWAi7SA=s240-c-k-c0x00ffffff-no-rj'],
+  'cgtn-africa': ['UCMeYPU1YfXjxsUa6QXWsfjg', 'https://yt3.googleusercontent.com/3Lx1qqnJccbQePM_hnBiir_CwwCFm4KnCZdD_4rCGltlvB_FfjvLS97Ii23jqgcNLPyFBEHx=s240-c-k-c0x00ffffff-no-rj'],
+  'france-24-english': ['UCQfwfsi5VrQ8yKZ-UWmAEFg', 'https://yt3.googleusercontent.com/ytc/AIdro_n_QTJ5-GLGnftQFkb7Kp36W2eBH3H-7ZqTQxzFkkqGrIE=s240-c-k-c0x00ffffff-no-rj'],
+})

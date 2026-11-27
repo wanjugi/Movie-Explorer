@@ -5,11 +5,15 @@ import { readGlobalSearchQuery, readTvBrowseQuery, tvBrowseRequest } from './med
 
 const tvDetail = () => import('../views/TvDetailView.vue')
 const watchView = () => import('../views/WatchView.vue')
+const liveTvView = () => import('../views/LiveTvView.vue')
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) return savedPosition
+    if (to.name === 'live-tv-channel' && to.hash === '#station-player') {
+      return { el: '#station-player', top: 12 }
+    }
     if (to.name !== from.name || to.path !== from.path) return { top: 0 }
     if (to.name === 'tv' || to.name === 'search') {
       const read = to.name === 'tv' ? readTvBrowseQuery : readGlobalSearchQuery
@@ -41,6 +45,9 @@ const router = createRouter({
     { path: '/collection/:id', name: 'collection', component: () => import('../views/CollectionView.vue') },
     { path: '/library', name: 'library', component: () => import('../views/LibraryView.vue') },
     { path: '/calendar', name: 'calendar', component: () => import('../views/CalendarView.vue') },
+    { path: '/live-tv', name: 'live-tv', component: liveTvView },
+    { path: '/live-tv/:channelSlug', name: 'live-tv-channel', component: liveTvView },
+    { path: '/live-tv/:channelSlug/about', name: 'live-tv-about', component: liveTvView },
     { path: '/watch/movie/:id', name: 'watch-movie', component: watchView },
     { path: '/watch/tv/:id/season/:seasonNumber/episode/:episodeNumber', name: 'watch-episode', component: watchView },
     { path: '/tv/:id', name: 'tv-details', component: tvDetail },
@@ -71,6 +78,7 @@ router.beforeEach(to => {
 const pageTitles = {
   movies: 'Movies', tv: 'TV Series', search: 'Search', favorites: 'Favorites',
   person: 'People', collection: 'Collection', library: 'Your Library', calendar: 'Release Calendar',
+  'live-tv': 'Live TV', 'live-tv-channel': 'Live TV', 'live-tv-about': 'Broadcaster Details',
   'movie-details': 'Movie Details', 'tv-details': 'TV Series Details', 'tv-season': 'Season Details',
   'tv-episode': 'Episode Details', 'watch-movie': 'Watch Movie', 'watch-episode': 'Watch Episode',
 }

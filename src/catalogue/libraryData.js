@@ -37,7 +37,7 @@ export function resumePosition(record, source, duration) {
   return record.position < duration - 2 ? record.position : 0
 }
 
-export function createLibraryStorage(storage, key, validate, limit) {
+export function createLibraryStorage(storage, key, validate, limit, identityFor = item => contentKey(item.item ?? item)) {
   let raw = null
   let blocked = false
   let initial = []
@@ -49,7 +49,7 @@ export function createLibraryStorage(storage, key, validate, limit) {
       else {
         const seen = new Set()
         for (const item of data.items) {
-          const identity = contentKey(item.item ?? item)
+          const identity = identityFor(item)
           if (seen.has(identity)) continue
           seen.add(identity)
           initial.push(item)

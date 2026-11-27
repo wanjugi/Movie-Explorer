@@ -15,7 +15,7 @@ Proposals in the design and architecture references require a later authorized t
 
 ## Git and deployment ownership
 
-The v1.0.0 maintenance baseline keeps the current deployment workflow. Phase 9B dynamic streaming-provider integration was skipped. Use only documented, approved playback sources and check them separately from the automated build.
+The v1.1.0 maintenance baseline keeps the current deployment workflow. Phase 9B dynamic streaming-provider integration was skipped. Register television sources using named, official broadcaster references, and verify playback separately from the automated build.
 
 The project owner exclusively manages Git operations unless they explicitly authorize the specific operation in the current task. This restriction applies to read and write operations, direct commands, tools and scripts that invoke Git. It includes `git status`, `git diff`, `git add`, `git commit`, `git push`, `git pull`, `git checkout`, `git switch`, `git merge`, `git rebase`, `git reset`, and branch creation or deletion.
 

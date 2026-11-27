@@ -4,10 +4,11 @@ import TitleSearch from './TitleSearch.vue'
 import ThemeToggle from './ThemeToggle.vue'
 
 const route = useRoute()
-const links = [['home', 'Home'], ['movies', 'Movies'], ['tv', 'TV Series'], ['favorites', 'Favorites']]
+const links = [['home', 'Home'], ['movies', 'Movies'], ['tv', 'TV Series'], ['live-tv', 'Live TV'], ['favorites', 'Favorites']]
 function inSection(name) {
   if (name === 'movies' && route.name === 'movie-details') return true
   if (name === 'tv' && String(route.name).startsWith('tv-')) return true
+  if (name === 'live-tv' && String(route.name).startsWith('live-tv-')) return true
   return name === route.name
 }
 </script>
@@ -28,3 +29,12 @@ function inSection(name) {
     </div>
   </header>
 </template>
+
+<style scoped>
+@media (min-width: 851px) and (max-width: 1120px) {
+  .cinema-nav { gap: clamp(.55rem, 1.35vw, 1rem); }
+}
+@media (max-width: 360px) {
+  .cinema-nav > a { font-size: .8rem; }
+}
+</style>

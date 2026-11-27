@@ -6,12 +6,22 @@ MovieExplorer is a cinematic Vue 3 application for discovering movies and TV ser
 
 ## Features
 
+- Open **Live TV** to browse Kenyan and selected international stations, filter the guide, visit broadcaster profiles, favorite stations and share channel links. Supported public YouTube broadcasts play after activation. Other stations link to their official viewing options. See [Live TV sources](LIVE_TV_SOURCES.md).
+
+### Optional current Live TV discovery
+
+In [Google Cloud Console](https://console.cloud.google.com/), create or select a project. In **APIs & Services → Library**, enable **YouTube Data API v3**. In **Credentials**, create an API key and restrict its permitted API to **YouTube Data API v3**. This key is used by the server. Browser referrer restrictions do not fit this server-side request path.
+
+Add `YOUTUBE_DATA_API_KEY` privately to your local `.env.local` and restart Vite. The Vite API adapter reads .env.local directly using loadEnv at startup. The PowerShell block below starts both APIs; the YouTube key requires no separate export. For deployment, add the same server-only variable under **Vercel → Project → Settings → Environment Variables** for the desired Preview or Production scopes. An owner-managed deployment is required to apply it. Keep the value out of browser-prefixed variables, screenshots and public files.
+
+Without a key, approved NTV Kenya, Al Jazeera English, France 24 English, KTN and BBC News fixed sources may play while eligible. Fixed playback also handles temporary resolver and quota failures when there is no confirmed rejection, player failure or expiry for that source. KBC and CGTN Africa require the key for on-demand discovery. After configuring the key, verify KTN, the two KBC channels, BBC?s regional feed and CGTN Africa around 13:00 or 20:00 Nairobi time. Authenticated discovery has been exercised with deterministic fixtures only. Google's documentation currently lists 100 daily `search.list` calls in a separate quota bucket. Metadata checks use `videos.list` first to conserve the search pool. [YouTube quotas](https://developers.google.com/youtube/data/determine_quota_cost)
+
 - Explore People search, cast and crew profiles, filmographies, collections, related titles, and a release calendar.
 - Check country-specific JustWatch availability through TMDB. Kenya is the default, and the country can be changed locally.
 - Open the Library from Favorites to access Watchlist, Recently Viewed, Watched, Continue Watching and optional seed-based recommendations. Library records and Favorites are stored separately in the browser.
 - Watch specifically approved full-length works through YouTube. [Playback sources](PLAYBACK_SOURCES.md) identifies the exact film and episode, creator and source. Trailer playback and external availability have separate controls. Full-title playback depends on the provider's embedding, network and regional restrictions.
 
-The v1.0.0 release is prepared locally. The owner-confirmed production baseline remains Phase 8B. Phase 9B dynamic streaming integration was deliberately skipped.
+The v1.1.0 release is prepared locally. Phase 9B dynamic movie streaming integration was deliberately skipped.
 
 ## Release and maintenance
 

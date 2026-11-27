@@ -14,3 +14,7 @@ During focused Phase 9 checks, isolated Chrome played both official embeds and r
 Resume waits for the official player to report a compatible duration after playback starts. It requests a seek and checks for a provider-reported position within an eight-second window. A pending seek or zero position does not replace existing progress. When the provider cannot confirm the seek, the watch page offers manual seeking.
 
 Phase 9B dynamic catalogue integration was deliberately skipped. The v1.0.0 release retains these two approved full-content sources. Verify provider availability again before reporting a playback regression, and remove a source if its authorization or provenance can no longer be established.
+
+The v1.1.0 television directory uses a separate [Live TV source register](LIVE_TV_SOURCES.md), with no changes to these two fixed-duration works. Live discovery uses a server-only YouTube Data API key when configured. Fixed full-content playback and trailers remain independent of that key.
+
+Live TV fallback is limited to current, approved sources and retains confirmed invalidations across replacement failures. KBC uses two approved official channels within one existing station profile. The Live TV source register lists regional and expiry details.

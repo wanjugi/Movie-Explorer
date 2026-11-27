@@ -111,6 +111,9 @@ test('versioned hosting rules target only known deep links and leave API/assets 
     { source: '/collection/:id', destination: '/index.html' },
     { source: '/library', destination: '/index.html' },
     { source: '/calendar', destination: '/index.html' },
+    { source: '/live-tv', destination: '/index.html' },
+    { source: '/live-tv/:channelSlug', destination: '/index.html' },
+    { source: '/live-tv/:channelSlug/about', destination: '/index.html' },
     { source: '/watch/movie/:id', destination: '/index.html' },
     { source: '/watch/tv/:id/season/:seasonNumber/episode/:episodeNumber', destination: '/index.html' },
   ])

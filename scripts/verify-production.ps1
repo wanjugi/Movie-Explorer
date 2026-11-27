@@ -10,7 +10,9 @@ $checks = @(
   foreach ($path in @('/', '/movies', '/tv', '/search?q=Sintel&type=people', '/favorites', '/movie/550',
     '/tv/33050', '/tv/33050/season/1', '/tv/33050/season/1/episode/1', '/person/31',
     '/collection/10', '/library', '/calendar', '/watch/movie/10378',
-    '/watch/tv/33050/season/1/episode/1', '/?q=Sintel', '/?genre=28')) {
+    '/watch/tv/33050/season/1/episode/1', '/?q=Sintel', '/?genre=28',
+    '/live-tv', '/live-tv/ntv-kenya', '/live-tv/ntv-kenya/about',
+    '/live-tv/france-24-english', '/live-tv/cgtn-africa/about')) {
     @{ Path = $path; Status = 200; Type = 'text/html' }
   }
   @{ Path = '/theme-preference.js'; Status = 200; Type = 'javascript' }
@@ -31,6 +33,8 @@ $checks = @(
   @{ Path = '/api/movies?operation=details&id=0'; Status = 400; Type = 'application/json' }
   @{ Path = '/api/tv?operation=details&id=1&id=2'; Status = 400; Type = 'application/json' }
   @{ Path = '/api/tv?operation=unknown'; Status = 404; Type = 'application/json' }
+  @{ Path = '/api/live-tv?operation=resolve&station=cnn-international'; Status = 200; Type = 'application/json' }
+  @{ Path = '/api/live-tv?operation=resolve&station=invalid'; Status = 400; Type = 'application/json' }
   @{ Path = '/api/__movieexplorer_invalid'; Status = 404 }
   @{ Path = '/api/movies?operation=genres'; Status = 405; Type = 'application/json'; Method = 'POST' }
 )

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.1.0
+
+- Protected approved Live TV fallback during temporary discovery failures, preserved confirmed invalidations, and made rolling quota retry timing accurate. Added a bounded KTN source and the regional BBC rolling feed, plus ordered two-channel KBC discovery.
+
+Prepared locally for owner verification.
+
+- Added Live TV with Kenyan and selected international broadcasters, a searchable guide and station profiles.
+- Added official broadcaster embeds where verified, with separate official viewing alternatives.
+- Added optional current YouTube broadcast resolution for verified broadcaster channels, a bounded retry when a broadcast ends, and official station avatars across Live TV.
+- Added station favorites, confirmed watch history, external-opening history and direct links.
+- Preserved the existing movie and series catalogue, themes, footer and player appearance.
+
 ## 1.0.0
 
 Prepared locally for the owner’s first stable release.

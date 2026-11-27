@@ -82,6 +82,8 @@ Movie and TV title pages share [CastGallery](src/components/CastGallery.vue) and
 
 ## Permanent design freeze
 
+Live TV uses the existing theme tokens, focus treatment, artwork lift and short transitions. A 3:1 desktop player and guide stack on compact screens. Cards, the guide, profiles and history use public broadcaster avatars from their official YouTube channels. Logos use contain sizing in a landscape plate, with the wordmark abbreviation reserved for missing or failed images. Short-lived verified broadcast thumbnails may appear behind the player placeholder. The iframe and its native controls remain unobstructed. The viewing surface stays dark in both themes. The existing footer remains unchanged.
+
 The v1.0.0 verification phase preserves the existing visual tokens, spacing, layout, themes and motion. Missing movie metadata uses the existing conditional rendering and artwork fallback.
 
 The owner froze the Phase 8B cinematic design. Changes to existing visual tokens, layouts, motion, responsive behavior, or branding require explicit owner approval. Phase 9 features use the existing detail hero, profile artwork, poster grid, rails, content states, buttons and theme styles. New controls for playback, discovery and the Library follow those conventions.
